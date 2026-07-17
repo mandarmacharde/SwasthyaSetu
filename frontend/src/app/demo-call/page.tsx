@@ -33,16 +33,18 @@ let audioCtx: AudioContext | null = null;
 let audioRef: HTMLAudioElement | null = null;
 
 async function playServerTTS(text: string, language: string): Promise<void> {
-  const blob = await api.tts.synthesize(text, language);
-  const url = URL.createObjectURL(blob);
-  return new Promise((resolve) => {
-    const audio = new Audio(url);
-    audioRef = audio;
-    audio.onended = () => { URL.revokeObjectURL(url); resolve(); };
-    audio.onerror = () => { URL.revokeObjectURL(url); resolve(); };
-    if (audioCtx?.state === "suspended") audioCtx.resume();
-    audio.play().catch(() => resolve());
-  });
+  try {
+    const blob = await api.tts.synthesize(text, language);
+    const url = URL.createObjectURL(blob);
+    await new Promise((resolve) => {
+      const audio = new Audio(url);
+      audioRef = audio;
+      audio.onended = () => { URL.revokeObjectURL(url); resolve(undefined); };
+      audio.onerror = () => { URL.revokeObjectURL(url); resolve(undefined); };
+      if (audioCtx?.state === "suspended") audioCtx.resume();
+      audio.play().catch(() => resolve(undefined));
+    });
+  } catch {}
 }
 
 export default function DemoCallPage() {
@@ -68,11 +70,14 @@ export default function DemoCallPage() {
   useEffect(() => { languageRef.current = language; }, [language]);
   useEffect(() => { return () => { mountedRef.current = false; }; }, []);
 
-    const unlockAudio = useCallback(() => {
-    if (!audioCtx || audioCtx.state === "closed") {
-      audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
-    }
-    if (audioCtx.state === "suspended") audioCtx.resume();
+  const unlockAudio = useCallback(() => {
+    try {
+      if (!audioCtx || audioCtx.state === "closed") {
+        const AC = (window as any).AudioContext || (window as any).webkitAudioContext;
+        if (AC) audioCtx = new AC();
+      }
+      if (audioCtx?.state === "suspended") audioCtx.resume();
+    } catch {}
   }, []);
 
   const cleanupAll = useCallback(() => {
