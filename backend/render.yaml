@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: swasthyasetu-backend
+    runtime: python
+    region: ohio
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port 10000
+    envVars:
+      - key: GROQ_API_KEY
+        sync: false
+      - key: SUPABASE_URL
+        value: https://fbyaatgwfyjnysvmfvdf.supabase.co
+      - key: SUPABASE_KEY
+        value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZieWFhdGd3Znlqbnlzdm1mdmRmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQyNjM4MzcsImV4cCI6MjA5OTgzOTgzN30.1NEoD6qjJw2FU50g2uYxrbaNBV8FTMbe9lqMpBukaNg
+      - key: WHISPER_MODEL_SIZE
+        value: base
