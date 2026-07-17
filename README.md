@@ -82,6 +82,27 @@ Create Supabase tables by running `backend/supabase_schema.sql` in Supabase SQL 
 curl -X POST http://localhost:8000/api/seed/demo
 ```
 
+### 3. IVR (Toll-Free Call)
+
+The IVR lets feature-phone users dial a number and speak symptoms. Uses **Twilio** + **Whisper** + **Groq** + **edge-tts**.
+
+**Setup:**
+1. Sign up at [twilio.com](https://twilio.com) (free trial ~$15 credit)
+2. Buy a phone number in the Twilio console
+3. Expose your local backend with [ngrok](https://ngrok.com): `ngrok http 8000`
+4. In Twilio Console → Phone Numbers → your number → Voice configuration:
+   - Set webhook to `https://your-ngrok-url.ngrok.io/api/ivr/voice` (POST)
+5. Call your Twilio number — you'll hear a language menu, then speak your symptoms
+
+**How it works:**
+- Twilio `<Gather>` with DTMF for language selection
+- `<Record>` captures speech, sends to backend
+- Backend: **Whisper** (transcribe) → **Groq** (triage) → **edge-tts** (speak response)
+- `<Play>` plays the AI's spoken question back to caller
+- Loop continues until triage is complete → case logged to Supabase → hangup
+
+**Languages supported on IVR:** Hindi, Marathi, English, Tamil, Bengali, Gujarati (edge-tts voices)
+
 ### 2. Frontend
 
 ```bash
@@ -119,6 +140,14 @@ PATCH  /api/cases/{id}        — Update case (status, assigned_to)
 ### Users
 ```
 GET /api/users/               — List users
+```
+
+### IVR (Twilio)
+```
+POST /api/ivr/voice           — Incoming call → language menu
+POST /api/ivr/language        — DTMF selection → greeting + record
+POST /api/ivr/recording       — Recording callback → transcribe + triage + respond
+GET  /api/ivr/audio/{name}    — Serve generated TTS audio
 ```
 
 ### Seed

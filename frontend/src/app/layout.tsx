@@ -13,10 +13,15 @@ export const metadata: Metadata = {
 
 export const viewport = "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no";
 
+import SwRegister from "@/components/SwRegister";
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className={inter.className}>{children}</body>
+      <body className={inter.className}>
+        {children}
+        <SwRegister />
+      </body>
     </html>
   );
 }

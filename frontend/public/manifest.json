@@ -2,12 +2,13 @@
   "name": "SwasthyaSetu — Rural Healthcare Bridge",
   "short_name": "SwasthyaSetu",
   "description": "Bridging every village to healthcare — one phone call, in one's own tongue.",
-  "start_url": "/",
+  "start_url": "/demo-call",
   "display": "standalone",
-  "background_color": "#f0fdf4",
+  "background_color": "#111827",
   "theme_color": "#15803d",
+  "categories": ["health", "medical"],
   "icons": [
-    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
-    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" }
+    { "src": "/icon-192.svg", "sizes": "192x192", "type": "image/svg+xml" },
+    { "src": "/icon-512.svg", "sizes": "512x512", "type": "image/svg+xml" }
   ]
 }
