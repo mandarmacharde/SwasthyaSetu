@@ -41,6 +41,17 @@ async function fetchJSON<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export const api = {
+  tts: {
+    synthesize: async (text: string, language = "mr"): Promise<Blob> => {
+      const res = await fetch(`${API_BASE}/api/tts`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text, language }),
+      });
+      if (!res.ok) throw new Error(`TTS ${res.status}`);
+      return res.blob();
+    },
+  },
   cases: {
     list: (params?: { status?: string; urgency?: string; assigned_to?: number }) => {
       const q = new URLSearchParams();

@@ -29,20 +29,20 @@ function CallTimer() {
   return <span className="font-mono tabular-nums">{String(m).padStart(2, "0")}:{String(s).padStart(2, "0")}</span>;
 }
 
-function useVoices() {
-  const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
-  useEffect(() => {
-    const grab = () => setVoices(window.speechSynthesis.getVoices());
-    grab();
-    window.speechSynthesis.onvoiceschanged = grab;
-    return () => { window.speechSynthesis.onvoiceschanged = null; };
-  }, []);
-  return voices;
-}
+let audioCtx: AudioContext | null = null;
+let audioRef: HTMLAudioElement | null = null;
 
-function findVoice(voices: SpeechSynthesisVoice[], langCode: string) {
-  const primary = langCode.split("-")[0];
-  return voices.find(v => v.lang.startsWith(primary + "-")) || voices.find(v => v.lang.startsWith(primary)) || null;
+async function playServerTTS(text: string, language: string): Promise<void> {
+  const blob = await api.tts.synthesize(text, language);
+  const url = URL.createObjectURL(blob);
+  return new Promise((resolve) => {
+    const audio = new Audio(url);
+    audioRef = audio;
+    audio.onended = () => { URL.revokeObjectURL(url); resolve(); };
+    audio.onerror = () => { URL.revokeObjectURL(url); resolve(); };
+    if (audioCtx?.state === "suspended") audioCtx.resume();
+    audio.play().catch(() => resolve());
+  });
 }
 
 export default function DemoCallPage() {
@@ -56,7 +56,6 @@ export default function DemoCallPage() {
   const [usingFallback, setUsingFallback] = useState(false);
   const [typingText, setTypingText] = useState("");
 
-  const voices = useVoices();
   const sessionIdRef = useRef<string | null>(null);
   const recognitionRef = useRef<any>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -69,23 +68,15 @@ export default function DemoCallPage() {
   useEffect(() => { languageRef.current = language; }, [language]);
   useEffect(() => { return () => { mountedRef.current = false; }; }, []);
 
-    const primeTts = useCallback(() => {
-    try {
-      const AC = (window as any).AudioContext || (window as any).webkitAudioContext;
-      if (AC) { new AC().close(); }
-    } catch {}
-    if (window.speechSynthesis) {
-      try {
-        const u = new SpeechSynthesisUtterance("");
-        u.volume = 0;
-        window.speechSynthesis.speak(u);
-        window.speechSynthesis.cancel();
-      } catch {}
+    const unlockAudio = useCallback(() => {
+    if (!audioCtx || audioCtx.state === "closed") {
+      audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
     }
+    if (audioCtx.state === "suspended") audioCtx.resume();
   }, []);
 
   const cleanupAll = useCallback(() => {
-    window.speechSynthesis?.cancel();
+    if (audioRef) { audioRef.pause(); audioRef = null; }
     if (recognitionRef.current) { try { recognitionRef.current.abort(); } catch {} recognitionRef.current = null; }
     if (recorderRef.current?.state === "recording") { try { recorderRef.current.stop(); } catch {} }
     recorderRef.current = null;
@@ -95,19 +86,10 @@ export default function DemoCallPage() {
   const isRedFlag = (text: string) =>
     RED_FLAG_KEYWORDS.some((kw) => text.toLowerCase().includes(kw.toLowerCase()));
 
-  const speakText = useCallback((text: string): Promise<void> => {
-    return new Promise((resolve) => {
-      if (!mountedRef.current) { resolve(); return; }
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = speechLangMap[languageRef.current] || "hi-IN";
-      utterance.rate = 0.85;
-      const v = findVoice(voices, utterance.lang);
-      if (v) utterance.voice = v;
-      utterance.onend = () => resolve();
-      utterance.onerror = () => resolve();
-      window.speechSynthesis.speak(utterance);
-    });
-  }, [voices]);
+  const speakText = useCallback(async (text: string): Promise<void> => {
+    if (!mountedRef.current) return;
+    await playServerTTS(text, languageRef.current);
+  }, []);
 
   const handleTriageResult = useCallback(async (result: any, transcript: string) => {
     setTriageResult(result);
@@ -267,7 +249,7 @@ export default function DemoCallPage() {
   }, [startSpeechRecognition, startFallbackRecording, cleanupAll]);
 
   const handleMicTap = useCallback(() => {
-    primeTts();
+    unlockAudio();
     if (voiceState === "speaking") {
       window.speechSynthesis?.cancel();
       cleanupAll();
@@ -277,7 +259,7 @@ export default function DemoCallPage() {
     if (voiceState === "idle" || voiceState === "done") {
       startListening();
     }
-  }, [voiceState, startListening, cleanupAll, primeTts]);
+  }, [voiceState, startListening, cleanupAll, unlockAudio]);
 
   const handleTextSubmit = useCallback(async () => {
     const text = typingText.trim();
@@ -309,16 +291,16 @@ export default function DemoCallPage() {
   }, [typingText, handleTriageResult, cleanupAll]);
 
   const enterCall = useCallback((langCode: string) => {
-    primeTts();
+    unlockAudio();
     setLanguage(langCode);
     languageRef.current = langCode;
     setPageStep("call");
     setVoiceState("idle");
     setTimeout(() => startListening(), 500);
-  }, [startListening, primeTts]);
+  }, [startListening, unlockAudio]);
 
   const handleDetectLanguage = async () => {
-    primeTts();
+    unlockAudio();
     setMicError("");
     setUsingFallback(false);
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
