@@ -7,50 +7,58 @@ Bridging every village to healthcare — one phone call, in one's own tongue.
 
 ---
 
+## What It Does
+
+A **browser-based AI voice triage** system for rural India. A patient opens the web app, selects their language (22 Indian languages supported), taps the mic, and speaks their symptoms. The AI converses with them naturally — listening, thinking, speaking back — until it has enough info to determine urgency and category. The case is then sent to local ASHA workers and doctors for follow-up.
+
+No app store, no text literacy required — just a browser and a mic.
+
+---
+
 ## Architecture
 
 ```
-Feature Phone                Smartphone (PWA)
-     │                            │
-  Phone Call (IVR)             Web App
-     │                            │
-  Twilio Voice                Next.js + shadcn/ui
-     │                            │
-     └──────────┬────────────────┘
-                │
-           FastAPI Backend
-                │
-     ┌──────────┼──────────┐
-     │          │          │
-  STT (Whisper) │     TTS (edge-tts)
-     │          │          │
-     └──────────┼──────────┘
-                │
-         AI Triage (Gemini)
-           WHO Protocol
-                │
-         ┌──────┴──────┐
-         │             │
-    PostgreSQL       Twilio SMS
-    (persistence)    (notifications)
-         │
-    ┌───┴───────────┐
-    │               │
- ASHA Dashboard  Doctor Dashboard
-  (Next.js)       (Next.js)
+Patient (Smartphone)
+     │
+  Browser with SpeechRecognition + speechSynthesis
+     │
+  Next.js Frontend (vercel-ready)
+     │
+  FastAPI Backend (render-ready)
+     │
+  ├── Groq AI (Llama 3.3-70b) — triage engine
+  │
+  └── Supabase (PostgreSQL) — cases, users, patients
+          │
+     ┌────┴────┐
+  ASHA Dashboard   Doctor Dashboard
 ```
 
 ## Tech Stack
 
 | Layer | Technology |
 |---|---|
-| **Backend** | FastAPI, SQLModel, PostgreSQL/SQLite |
-| **AI** | Gemini 2.5 Flash, faster-whisper, edge-tts |
+| **Backend** | FastAPI, Python |
+| **AI** | Groq (Llama 3.3-70b-versatile) |
+| **Database** | Supabase (PostgreSQL) |
 | **Frontend** | Next.js 15, Tailwind CSS, shadcn/ui |
-| **IVR** | Twilio Voice + Media Streams |
-| **Notifications** | Twilio SMS, Firebase (optional) |
-| **Auth** | JWT, bcrypt |
-| **Deployment** | Docker, docker-compose |
+| **Speech (browser)** | Web Speech API (SpeechRecognition + speechSynthesis) |
+| **Speech (fallback)** | MediaRecorder + backend Whisper |
+| **Auth** | Demo mode (localStorage), bcrypt |
+| **Deployment** | Render (backend) + Vercel (frontend) |
+
+## Features
+
+- **Voice conversation** — listen → Groq triage → TTS speaks back → auto-listen. Like a real voice assistant.
+- **22 Indian languages** — Hindi, Marathi, Bengali, Tamil, Telugu, Gujarati, Kannada, Malayalam, Punjabi, Odia, Urdu, Assamese, Maithili, Santali, Kashmiri, Nepali, Sindhi, Konkani, Dogri, Manipuri, Bodo, Sanskrit, English
+- **Auto-detect language** — tap the mic button, speak, the system detects which language you're using
+- **All browsers** — SpeechRecognition on Safari/Chrome/Edge; auto-fallback to MediaRecorder+Whisper on Firefox
+- **Cross-browser mic** — single button that works everywhere. TTS speaks AI responses aloud (Chrome autoplay handled).
+- **Red-flag detection** — keywords for emergencies (seizures, unconsciousness, severe bleeding) trigger immediate emergency alert
+- **ASHA dashboard** — view open cases, assign to yourself, mark visited
+- **Doctor dashboard** — review triaged cases, mark as treated
+- **Case detail** — full conversation transcript, urgency badge, status transitions
+- **Phone-style UI** — dark gradient screen, pulsing mic, red end-call button, call timer
 
 ## Quick Start
 
@@ -58,16 +66,20 @@ Feature Phone                Smartphone (PWA)
 
 ```bash
 cd backend
-python -m venv .venv
-source .venv/bin/activate
 pip install -r requirements.txt
 
 # Configure
 cp .env.example .env
-# Edit .env — add your GEMINI_API_KEY
+# Edit .env — add GROQ_API_KEY, SUPABASE_URL, SUPABASE_KEY
 
-# Run (SQLite, no external DB needed)
-uvicorn app.main:app --reload --port 8090
+# Run
+uvicorn app.main:app --reload --port 8000
+```
+
+Create Supabase tables by running `backend/supabase_schema.sql` in Supabase SQL Editor, then seed demo data:
+
+```bash
+curl -X POST http://localhost:8000/api/seed/demo
 ```
 
 ### 2. Frontend
@@ -79,117 +91,69 @@ npm run dev
 # Opens at http://localhost:3000
 ```
 
-### 3. With Docker
-
-```bash
-docker-compose up --build
-# Backend: http://localhost:8000
-# Frontend: http://localhost:3000
-```
-
 ## Environment Variables
 
-| Variable | Required | Default | Description |
-|---|---|---|---|
-| `GEMINI_API_KEY` | Yes | — | Google Gemini API key |
-| `GEMINI_MODEL` | No | `gemini-2.5-flash` | Gemini model name |
-| `DATABASE_URL` | No | `sqlite+aiosqlite:///./swasthyasetu.db` | PostgreSQL or SQLite |
-| `TWILIO_ACCOUNT_SID` | For IVR | — | Twilio account SID |
-| `TWILIO_AUTH_TOKEN` | For IVR | — | Twilio auth token |
-| `TWILIO_PHONE_NUMBER` | For IVR | — | Twilio phone number |
-| `JWT_SECRET` | No | `dev-secret-...` | JWT signing key |
-| `MOCK_TRIAGE` | No | — | Set to `1` to use mock triage (no API key needed) |
-| `DEFAULT_LANG` | No | `mr` | Default language code |
+| Variable | Required | Description |
+|---|---|---|
+| `GROQ_API_KEY` | Yes | Groq API key for Llama 3.3-70b |
+| `SUPABASE_URL` | Yes | Supabase project URL |
+| `SUPABASE_KEY` | Yes | Supabase anon/public key |
+| `DEFAULT_LANG` | No | Default language code (`mr`) |
 
 ## API Endpoints
 
-### Health
-```
-GET /health
-```
-
 ### Triage
 ```
-POST /api/triage        — Text-based triage (JSON body)
-POST /api/audio-triage  — Audio-based triage (multipart form)
+POST /api/triage             — Text triage (JSON)
+POST /api/audio-triage       — Audio triage (multipart)
+POST /api/detect-language    — Detect language (JSON)
 ```
 
 ### Cases
 ```
-GET    /api/cases/                  — List cases (filter by status, urgency)
-GET    /api/cases/by-session/{id}   — Get case by session ID
-GET    /api/cases/{id}              — Get case by case ID
-PATCH  /api/cases/{id}/assign       — Assign case to user
-PATCH  /api/cases/{id}/status       — Update case status
-```
-
-### Patients
-```
-GET /api/patients/      — List patients
-GET /api/patients/{id}  — Get patient with case history
+GET    /api/cases/            — List cases
+GET    /api/cases/{id}        — Get case detail
+PATCH  /api/cases/{id}        — Update case (status, assigned_to)
 ```
 
 ### Users
 ```
-GET /api/users/       — List users (filter by role, district)
-GET /api/users/{id}   — Get user details
+GET /api/users/               — List users
 ```
 
-### IVR (Twilio)
+### Seed
 ```
-POST /api/ivr/voice             — Incoming call handler
-POST /api/ivr/choose-language   — Language selection
-POST /api/ivr/process-speech    — Speech processing
+POST /api/seed/demo           — Seed demo data
+GET  /api/seed/status         — Check data count
 ```
 
 ## Dashboard URLs
 
 | Page | URL | Role |
 |---|---|---|
-| Landing | `/` | Public |
+| Demo Call | `/demo-call` | Public (patient) |
 | Login | `/login` | Public |
 | ASHA Dashboard | `/asha` | ASHA Worker |
 | Doctor Dashboard | `/doctor` | Doctor |
 | Admin Dashboard | `/admin` | Admin |
-
-## Testing
-
-```bash
-cd backend
-pytest tests/ -v
-```
+| Case Detail | `/cases/[id]` | ASHA/Doctor |
 
 ## Project Structure
 
 ```
 backend/
   app/
-    api/           — Route handlers
-    models/        — SQLModel database models
-    services/      — Business logic
+    api/           — Route handlers (triage, cases, auth, detect, seed)
+    models/        — Stubbed SQLModel (migrating to Supabase)
+    services/      — Triage engine (Groq), session mgmt, Supabase client
     config.py      — Environment config
-    database.py    — Database engine
     main.py        — FastAPI app
-  tests/           — Unit + integration tests
-  demo.py          — CLI demo
+    supabase_client.py — Supabase singleton
+  supabase_schema.sql — DDL for all 4 tables
+  render.yaml      — Render deploy config
 frontend/
   src/
-    app/           — Next.js pages
+    app/           — Next.js pages (demo-call, login, asha, doctor, admin, cases)
     components/    — Reusable UI components
-    lib/           — API client
+    lib/           — API client, languages, theme
 ```
-
-## Demo
-
-The system includes a CLI demo that works without an API key:
-
-```bash
-cd backend
-MOCK_TRIAGE=1 python demo.py --lang mr    # Marathi text demo
-MOCK_TRIAGE=1 python demo.py --lang hi    # Hindi text demo
-MOCK_TRIAGE=1 python demo.py --lang en    # English text demo
-```
-
-## License
-
-Hackathon project — AI for Bharat 2026, IIIT Delhi
