@@ -38,60 +38,15 @@ export default function DemoCallPage() {
   const [triageResult, setTriageResult] = useState<any>(null);
   const [conversation, setConversation] = useState<{ role: string; text: string }[]>([]);
   const [loading, setLoading] = useState(false);
-
-  const recognitionRef = useRef<any>(null);
-  const streamRef = useRef<MediaStream | null>(null);
-  const audioContextRef = useRef<AudioContext | null>(null);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const chunksRef = useRef<Blob[]>([]);
   const [isRecording, setIsRecording] = useState(false);
   const [micError, setMicError] = useState("");
-  const [micReady, setMicReady] = useState(false);
-  const [micLevel, setMicLevel] = useState(0);
-  const levelRef = useRef(0);
-  const [recordingMode, setRecordingMode] = useState<"speech" | "audio">("speech");
+  const recognitionRef = useRef<any>(null);
+  const streamRef = useRef<MediaStream | null>(null);
 
   const hasSpeech = !!speechLangMap[language];
 
-  const requestMic = useCallback(async (): Promise<boolean> => {
-    if (streamRef.current) return true;
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      streamRef.current = stream;
-      const ctx = new AudioContext();
-      audioContextRef.current = ctx;
-      const src = ctx.createMediaStreamSource(stream);
-      const analyser = ctx.createAnalyser();
-      analyser.fftSize = 256;
-      src.connect(analyser);
-      const data = new Uint8Array(analyser.frequencyBinCount);
-      const tick = () => {
-        analyser.getByteFrequencyData(data);
-        const avg = data.reduce((a, b) => a + b, 0) / data.length;
-        levelRef.current = Math.min(avg / 128, 1);
-        if (streamRef.current) requestAnimationFrame(tick);
-      };
-      tick();
-      setMicReady(true);
-      setMicError("");
-      return true;
-    } catch (err: any) {
-      setMicReady(false);
-      if (err.name === "NotAllowedError" || err.name === "PermissionDeniedError") {
-        setMicError("Microphone access blocked. Allow mic in browser settings, then refresh.");
-      } else if (err.name === "NotFoundError") {
-        setMicError("No microphone found. Connect a mic or type below.");
-      } else {
-        setMicError(`Mic unavailable: ${err.message}.`);
-      }
-      return false;
-    }
-  }, []);
-
   const cleanupMic = useCallback(() => {
-    if (audioContextRef.current) { audioContextRef.current.close(); audioContextRef.current = null; }
     if (streamRef.current) { streamRef.current.getTracks().forEach(t => t.stop()); streamRef.current = null; }
-    setMicReady(false);
     setIsRecording(false);
   }, []);
 
@@ -99,81 +54,59 @@ export default function DemoCallPage() {
     RED_FLAG_KEYWORDS.some((kw) => text.toLowerCase().includes(kw.toLowerCase()));
 
   const startSpeechRecognition = useCallback(async (isFollowUp: boolean, langOverride?: string) => {
-    setRecordingMode("speech");
     setMicError("");
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SR) { setMicError("Try Record Audio below."); return; }
-    const ok = await requestMic();
-    if (!ok) return;
+    if (!SR) { setMicError("Speech recognition not supported. Try Safari or Chrome on desktop."); return; }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
+    } catch {
+      setMicError("Microphone access denied. Allow mic in browser settings.");
+      return;
+    }
+
     try {
       const recognition = new SR();
       recognition.lang = langOverride || speechLangMap[language] || "mr-IN";
       recognition.continuous = false;
       recognition.interimResults = false;
       recognition.maxAlternatives = 1;
+
       recognition.onstart = () => setIsRecording(true);
       recognition.onend = () => { setIsRecording(false); cleanupMic(); };
+
       recognition.onresult = (event: any) => {
         const transcript = event.results[0][0].transcript;
         if (isFollowUp) {
-          setAnswer(transcript); setTimeout(() => handleAnswerTextWith(transcript), 100);
+          setAnswer(transcript);
+          setTimeout(() => handleAnswerTextWith(transcript), 100);
         } else {
-          setSymptom(transcript); setTimeout(() => handleSpeakTextWith(transcript), 100);
+          setSymptom(transcript);
+          setTimeout(() => handleSpeakTextWith(transcript), 100);
         }
       };
+
       recognition.onerror = (event: any) => {
         setIsRecording(false); cleanupMic();
-        if (event.error === "not-allowed" || event.error === "permission-denied") setMicError("Mic blocked.");
-        else if (event.error === "no-speech") setMicError("No speech detected.");
-        else if (event.error === "network") setMicError("Speech server unreachable. Use Record Audio below.");
-        else setMicError("Mic error. Try Record Audio below.");
+        if (event.error === "network") {
+          setMicError("Speech recognition requires internet. Try Safari — it uses on-device recognition.");
+        } else if (event.error === "not-allowed" || event.error === "permission-denied") {
+          setMicError("Microphone blocked. Allow mic access and refresh.");
+        } else if (event.error === "no-speech") {
+          setMicError("No speech detected. Try speaking louder.");
+        } else {
+          setMicError(`Microphone error. Try typing below.`);
+        }
       };
+
       recognitionRef.current = recognition;
       recognition.start();
-      const levelInterval = setInterval(() => setMicLevel(levelRef.current), 100);
-      recognition.onend = () => { clearInterval(levelInterval); setIsRecording(false); cleanupMic(); };
-    } catch { cleanupMic(); setMicError("Could not start mic."); }
-  }, [language, requestMic, cleanupMic]);
-
-  const startAudioRecording = useCallback(async (isFollowUp: boolean) => {
-    setRecordingMode("audio");
-    setMicError("");
-    const ok = await requestMic();
-    if (!ok) return;
-    chunksRef.current = [];
-    try {
-      const recorder = new MediaRecorder(streamRef.current!, { mimeType: "audio/webm;codecs=opus" });
-      mediaRecorderRef.current = recorder;
-      recorder.ondataavailable = (e) => { if (e.data.size > 0) chunksRef.current.push(e.data); };
-      recorder.onstop = async () => {
-        cleanupMic();
-        if (chunksRef.current.length === 0) { setMicError("No audio recorded."); return; }
-        const blob = new Blob(chunksRef.current, { type: "audio/webm" });
-        setLoading(true);
-        try {
-          const result = await api.triage.audio(blob, isFollowUp ? sessionIdRef.current || undefined : undefined, language);
-          if (isFollowUp) {
-            setAnswer(result.transcript || "");
-            if (result.next_question) handleTriageResponse({ urgency: result.urgency, possible_category: result.possible_category, next_question: result.next_question, enough_info: result.complete, session_id: result.session_id });
-          } else {
-            setSymptom(result.transcript || "");
-            if (!sessionIdRef.current && result.session_id) { setSessionId(result.session_id); sessionIdRef.current = result.session_id; }
-            if (result.transcript) await handleSpeakTextWith(result.transcript);
-            handleTriageResponse({ urgency: result.urgency, possible_category: result.possible_category, next_question: result.next_question, enough_info: result.complete, session_id: result.session_id });
-          }
-        } catch { setMicError("Audio processing failed."); }
-        finally { setLoading(false); }
-      };
-      recorder.onerror = () => { cleanupMic(); setMicError("Recording failed."); };
-      recorder.start();
-      setIsRecording(true);
-      setTimeout(() => { if (recorder.state === "recording") recorder.stop(); }, 5000);
-    } catch { cleanupMic(); setMicError("Could not start recording."); }
-  }, [language, requestMic, cleanupMic]);
-
-  const stopAudioRecording = useCallback(() => {
-    if (mediaRecorderRef.current?.state === "recording") mediaRecorderRef.current.stop();
-  }, []);
+    } catch {
+      cleanupMic();
+      setMicError("Could not start microphone. Try typing below.");
+    }
+  }, [language, cleanupMic]);
 
   const handleTriageResponse = (result: any) => {
     setTriageResult(result);
@@ -224,9 +157,12 @@ export default function DemoCallPage() {
   const handleDetectLanguage = async () => {
     setMicError("");
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SR) { setMicError("Speech recognition unavailable. Select manually."); return; }
-    const ok = await requestMic();
-    if (!ok) return;
+    if (!SR) { setMicError("Speech recognition not available. Select manually."); return; }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
+    } catch { setMicError("Microphone blocked. Select manually."); return; }
+
     try {
       const recognition = new SR();
       recognition.lang = "en-IN";
@@ -244,7 +180,7 @@ export default function DemoCallPage() {
         } catch { setLanguage("hi"); setSymptom(transcript); setTimeout(() => handleSpeakTextWith(transcript), 100); }
         finally { setLoading(false); }
       };
-      recognition.onerror = () => { setIsRecording(false); cleanupMic(); setMicError("Could not detect language. Select manually."); };
+      recognition.onerror = () => { setIsRecording(false); cleanupMic(); setMicError("Detection failed. Select manually."); };
       recognitionRef.current = recognition;
       recognition.start();
     } catch { cleanupMic(); setMicError("Could not start mic."); }
@@ -259,14 +195,13 @@ export default function DemoCallPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900 flex flex-col items-center justify-center p-4">
-      {/* Connection bar */}
       {step !== "language" && step !== "result" && (
         <div className="fixed top-0 left-0 right-0 bg-gray-900/90 backdrop-blur z-10 px-4 py-2 flex items-center justify-between text-xs text-gray-400">
           <span className="flex items-center gap-1">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
             Connected
           </span>
-          <span className="font-mono">{isRecording ? <CallTimer /> : "—"}</span>
+          <span className="font-mono"><CallTimer /></span>
         </div>
       )}
 
@@ -287,9 +222,7 @@ export default function DemoCallPage() {
             <div className="text-xs text-emerald-200 mt-0.5">Tap & speak — we&apos;ll detect automatically</div>
           </button>
 
-          {micError && (
-            <div className="bg-red-900/50 border border-red-700 rounded-xl p-3 text-xs text-red-300">{micError}</div>
-          )}
+          {micError && <div className="bg-red-900/50 border border-red-700 rounded-xl p-3 text-xs text-red-300">{micError}</div>}
 
           <div className="text-center text-xs text-gray-500">— or choose —</div>
 
@@ -298,9 +231,7 @@ export default function DemoCallPage() {
               <button key={l.code} onClick={() => { setLanguage(l.code); setStep("speak"); }}
                 className="w-full flex items-center gap-3 bg-gray-800 hover:bg-gray-700 text-white rounded-xl py-3 px-4 transition-all active:scale-[0.98]"
               >
-                <div className="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center text-xs font-bold text-gray-300">
-                  {l.code.toUpperCase()}
-                </div>
+                <div className="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center text-xs font-bold text-gray-300">{l.code.toUpperCase()}</div>
                 <div className="text-left flex-1">
                   <div className="text-sm font-medium">{l.native}</div>
                   <div className="text-xs text-gray-400">{l.label}{!l.speech && " (text only)"}</div>
@@ -315,9 +246,8 @@ export default function DemoCallPage() {
       {/* Active Call Screen */}
       {(step === "speak" || step === "reply") && (
         <div className="w-full max-w-sm text-center space-y-6">
-          {/* Avatar / Contact */}
           <div className="mb-4">
-            <div className={`w-24 h-24 rounded-full mx-auto mb-3 flex items-center justify-center text-4xl transition-all duration-500 ${isRecording ? (recordingMode === "speech" ? "bg-red-500 shadow-lg shadow-red-500/30 scale-110" : "bg-purple-500 shadow-lg shadow-purple-500/30 scale-110") : "bg-gray-700"}`}>
+            <div className={`w-24 h-24 rounded-full mx-auto mb-3 flex items-center justify-center text-4xl transition-all duration-500 ${isRecording ? "bg-red-500 shadow-lg shadow-red-500/30 scale-110" : "bg-gray-700"}`}>
               {step === "speak" ? (isRecording ? "🎙️" : "👤") : (isRecording ? "🎙️" : "🤖")}
             </div>
             <h2 className="text-xl font-bold text-white">
@@ -333,56 +263,28 @@ export default function DemoCallPage() {
             </div>
           )}
 
-          {/* Mic Button */}
-          {hasSpeech && step === "speak" && !micError && (
-            <div className="space-y-3">
-              <button onClick={() => startSpeechRecognition(false)} disabled={isRecording || loading}
-                className={`w-24 h-24 rounded-full mx-auto transition-all active:scale-90 ${isRecording && recordingMode === "speech" ? "bg-red-500 shadow-lg shadow-red-500/50 scale-110 animate-pulse" : "bg-emerald-600 hover:bg-emerald-500 shadow-lg"}`}
-              >
-                <span className="text-4xl">{isRecording && recordingMode === "speech" ? "🎙️" : "🎤"}</span>
-              </button>
-              {isRecording && recordingMode === "speech" && (
-                <div className="flex justify-center gap-1 h-5 items-end">
-                  {Array.from({ length: 24 }).map((_, i) => (
-                    <div key={i} className="w-1 bg-red-400 rounded-full transition-all"
-                      style={{ height: `${Math.max(3, Math.min(20, micLevel * 20 * (Math.sin(i * 0.6 + Date.now() * 0.004) * 0.5 + 0.5)))}px`, opacity: 0.4 + micLevel * 0.6 }}
-                    />
-                  ))}
-                </div>
-              )}
-              <p className="text-sm text-gray-300">{isRecording && recordingMode === "speech" ? "Listening..." : "Tap to Speak"}</p>
-              <p className="text-xs text-gray-500">In-browser — nothing uploaded</p>
-            </div>
-          )}
-
-          {hasSpeech && step === "reply" && (
-            <div className="space-y-3">
-              <button onClick={() => startSpeechRecognition(true)} disabled={isRecording || loading}
-                className={`w-20 h-20 rounded-full mx-auto transition-all active:scale-90 ${isRecording && recordingMode === "speech" ? "bg-red-500 shadow-lg shadow-red-500/50 scale-110 animate-pulse" : "bg-emerald-600 hover:bg-emerald-500 shadow-lg"}`}
-              >
-                <span className="text-3xl">{isRecording && recordingMode === "speech" ? "🎙️" : "🎤"}</span>
-              </button>
-              {isRecording && recordingMode === "speech" && (
-                <div className="flex justify-center gap-0.5 h-4 items-end">
-                  {Array.from({ length: 16 }).map((_, i) => (
-                    <div key={i} className="w-1 bg-red-400 rounded-full transition-all"
-                      style={{ height: `${Math.max(2, Math.min(14, micLevel * 14 * (Math.sin(i * 0.6 + Date.now() * 0.004) * 0.5 + 0.5)))}px`, opacity: 0.4 + micLevel * 0.6 }}
-                    />
-                  ))}
-                </div>
-              )}
-              <p className="text-sm text-gray-300">{isRecording && recordingMode === "speech" ? "Listening..." : "Tap to Answer"}</p>
-            </div>
-          )}
-
           {micError && (
             <div className="bg-red-900/50 border border-red-700 rounded-xl p-3 mx-4">
-              <p className="text-xs text-red-300 mb-2">{micError}</p>
-              <button onClick={() => startAudioRecording(step === "reply")}
-                className="bg-purple-600 hover:bg-purple-500 text-white text-xs rounded-xl py-2 px-4 transition-all"
+              <p className="text-xs text-red-300">{micError}</p>
+            </div>
+          )}
+
+          {/* Mic Button */}
+          {hasSpeech && (
+            <div className="space-y-3">
+              <button onClick={() => startSpeechRecognition(step === "reply")} disabled={isRecording || loading}
+                className={`w-24 h-24 rounded-full mx-auto transition-all active:scale-90 ${isRecording ? "bg-red-500 shadow-lg shadow-red-500/50 scale-110 animate-pulse" : "bg-emerald-600 hover:bg-emerald-500 shadow-lg"}`}
               >
-                🔴 Record Audio Instead
+                <span className="text-4xl">{isRecording ? "🎙️" : "🎤"}</span>
               </button>
+              <p className="text-sm text-gray-300">{isRecording ? "Listening..." : step === "speak" ? "Tap to Speak" : "Tap to Answer"}</p>
+              {!isRecording && <p className="text-xs text-gray-500">In-browser — nothing uploaded</p>}
+            </div>
+          )}
+
+          {!hasSpeech && (
+            <div className="bg-gray-800 rounded-xl p-4 mx-4">
+              <p className="text-sm text-gray-400">Voice not available for {lang?.label}</p>
             </div>
           )}
 
@@ -412,31 +314,18 @@ export default function DemoCallPage() {
 
           {/* End Call */}
           <button onClick={reset}
-            className="w-14 h-14 rounded-full bg-red-600 hover:bg-red-500 mx-auto flex items-center justify-center transition-all active:scale-90"
+            className="w-14 h-14 rounded-full bg-red-600 hover:bg-red-500 mx-auto flex items-center justify-center transition-all active:scale-90 shadow-lg"
           >
             <span className="text-xl">📞</span>
           </button>
           <p className="text-xs text-gray-500 -mt-3">End Call</p>
-
-          {/* Audio recording fallback (small) */}
-          {!micError && (
-            <div className="text-center">
-              <button onClick={() => startAudioRecording(step === "reply")} disabled={isRecording || loading}
-                className="text-xs text-gray-500 hover:text-gray-300 transition-colors"
-              >
-                🔴 Record Audio (server-side)
-              </button>
-            </div>
-          )}
         </div>
       )}
 
       {/* Processing */}
       {step === "listening" && (
         <div className="text-center space-y-4">
-          <div className="w-24 h-24 rounded-full bg-emerald-600 mx-auto flex items-center justify-center text-4xl animate-pulse">
-            🤖
-          </div>
+          <div className="w-24 h-24 rounded-full bg-emerald-600 mx-auto flex items-center justify-center text-4xl animate-pulse">🤖</div>
           <p className="text-lg font-medium text-white">Processing</p>
           <p className="text-sm text-gray-400">AI is analyzing your symptoms</p>
           <div className="flex justify-center gap-1">
@@ -485,9 +374,7 @@ export default function DemoCallPage() {
           </div>
 
           <a href="/asha">
-            <Button className="bg-emerald-600 hover:bg-emerald-500 w-48 rounded-xl">
-              Go to ASHA Dashboard
-            </Button>
+            <Button className="bg-emerald-600 hover:bg-emerald-500 w-48 rounded-xl">Go to ASHA Dashboard</Button>
           </a>
         </div>
       )}
