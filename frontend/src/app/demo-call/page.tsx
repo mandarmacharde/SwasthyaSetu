@@ -71,12 +71,18 @@ export default function DemoCallPage() {
     });
   }, []);
 
+  const getMicWithTimeout = (timeoutMs = 8000) =>
+    Promise.race([
+      navigator.mediaDevices.getUserMedia({ audio: true }),
+      new Promise<never>((_, reject) => setTimeout(() => reject(new Error("mic_timeout")), timeoutMs)),
+    ]);
+
   const startRecording = useCallback(() => {
     if (!mountedRef.current || isRecordingRef.current) return;
     setMicError("");
     setStatus("Recording...");
 
-    navigator.mediaDevices.getUserMedia({ audio: true })
+    getMicWithTimeout()
       .then(stream => {
         if (!mountedRef.current) { stream.getTracks().forEach(t => t.stop()); return; }
         streamRef.current = stream;
@@ -101,8 +107,11 @@ export default function DemoCallPage() {
           setStatus("AI is thinking...");
 
           try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 30000);
             turnRef.current += 1;
-            const result = await api.triage.audio(blob, sessionIdRef.current || undefined, languageRef.current);
+            const result = await api.triage.audio(blob, sessionIdRef.current || undefined, languageRef.current, controller.signal);
+            clearTimeout(timeoutId);
             if (!mountedRef.current) return;
 
             if (result.error) {
@@ -143,6 +152,7 @@ export default function DemoCallPage() {
               await playAudioFromBase64(result.reply_audio_base64);
             }
 
+            setStatus("");
             if (mountedRef.current && !isCompleteRef.current) {
               startRecording();
             }
@@ -159,9 +169,14 @@ export default function DemoCallPage() {
           if (recorderRef.current?.state === "recording") recorderRef.current.stop();
         }, 7000);
       })
-      .catch(() => {
+      .catch((err) => {
         isRecordingRef.current = false;
-        if (mountedRef.current) setMicError("Microphone access denied. Allow mic or type below.");
+        if (!mountedRef.current) return;
+        const msg = err?.message === "mic_timeout"
+          ? "Microphone permission timed out. Reload and try again."
+          : "Microphone access denied. Allow mic or type below.";
+        setMicError(msg);
+        setStatus("");
       });
   }, [playAudioFromBase64]);
 
@@ -227,10 +242,11 @@ export default function DemoCallPage() {
 
   const handleDetectLanguage = async () => {
     setMicError("");
-    navigator.mediaDevices.getUserMedia({ audio: true })
+    setStatus("Listening...");
+
+    getMicWithTimeout()
       .then(stream => {
         if (!mountedRef.current) { stream.getTracks().forEach(t => t.stop()); return; }
-        setStatus("Listening...");
         chunksRef.current = [];
         const mime = MediaRecorder.isTypeSupported("audio/webm;codecs=opus") ? "audio/webm;codecs=opus" : "audio/webm";
         const recorder = new MediaRecorder(stream, { mimeType: mime });
@@ -241,7 +257,10 @@ export default function DemoCallPage() {
           const blob = new Blob(chunksRef.current, { type: mime });
           setStatus("Detecting...");
           try {
-            const result = await api.triage.audio(blob, undefined, "en");
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 30000);
+            const result = await api.triage.audio(blob, undefined, "en", controller.signal);
+            clearTimeout(timeoutId);
             if (result.transcript) {
               const langResult = await api.triage.detectLanguage(result.transcript);
               const lang = langResult.language || "hi";
@@ -258,19 +277,24 @@ export default function DemoCallPage() {
                 setStatus("AI is speaking...");
                 await playAudioFromBase64(result.reply_audio_base64);
               }
+              setStatus("");
               if (mountedRef.current && !result.complete) startRecording();
               else if (result.complete) {
                 setTriageResult({ urgency: result.urgency, possible_category: result.possible_category });
                 setTimeout(() => setPageStep("result"), 1000);
               }
             } else { setMicError("Could not detect language. Select manually."); setStatus(""); }
-          } catch { setMicError("Detection failed."); setStatus(""); }
+          } catch { setMicError("Detection failed. Select language manually."); setStatus(""); }
         };
         recorderRef.current = recorder;
         recorder.start();
         setTimeout(() => { if (recorder.state === "recording") recorder.stop(); }, 7000);
       })
-      .catch(() => setMicError("Mic access denied."));
+      .catch((err) => {
+        const msg = err?.message === "mic_timeout" ? "Mic timed out." : "Mic access denied.";
+        setMicError(msg);
+        setStatus("");
+      });
   };
 
   const reset = () => {

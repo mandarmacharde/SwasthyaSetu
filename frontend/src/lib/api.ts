@@ -16,6 +16,17 @@ export interface Case {
   updated_at: string;
 }
 
+export interface Patient {
+  id: number;
+  phone: string;
+  name: string;
+  language: string;
+  district: string;
+  abha_id: string;
+  created_at: string;
+  cases?: Case[];
+}
+
 export interface User {
   id: number;
   name: string;
@@ -91,7 +102,7 @@ export const api = {
         method: "POST",
         body: JSON.stringify({ text }),
       }),
-    audio: async (audioBlob: Blob, session_id?: string, language = "mr") => {
+    audio: async (audioBlob: Blob, session_id?: string, language = "mr", signal?: AbortSignal) => {
       const formData = new FormData();
       formData.append("audio", audioBlob, "recording.webm");
       if (session_id) formData.append("session_id", session_id);
@@ -99,6 +110,7 @@ export const api = {
       const res = await fetch(`${API_BASE}/api/audio-triage`, {
         method: "POST",
         body: formData,
+        signal,
       });
       if (!res.ok) { const err = await res.text(); throw new Error(`API ${res.status}: ${err}`); }
       return res.json() as Promise<{
@@ -107,6 +119,14 @@ export const api = {
         reply_audio_base64?: string; complete: boolean; error?: string;
       }>;
     },
+  },
+
+  patients: {
+    list: (search?: string) => {
+      const qs = search ? `?search=${encodeURIComponent(search)}` : "";
+      return fetchJSON<Patient[]>(`/api/patients/${qs}`);
+    },
+    get: (id: number) => fetchJSON<Patient>(`/api/patients/${id}`),
   },
 
   seed: {

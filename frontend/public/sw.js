@@ -13,6 +13,15 @@ self.addEventListener("activate", (e) => {
 
 self.addEventListener("fetch", (e) => {
   e.respondWith(
-    caches.match(e.request).then((r) => r || fetch(e.request).catch(() => caches.match("/")))
+    fetch(e.request)
+      .then((res) => {
+        // Cache the latest version if it's a valid response
+        if (res && res.status === 200 && res.type === "basic" && e.request.method === "GET") {
+          const resClone = res.clone();
+          caches.open(CACHE).then((c) => c.put(e.request, resClone));
+        }
+        return res;
+      })
+      .catch(() => caches.match(e.request).then((r) => r || caches.match("/")))
   );
 });

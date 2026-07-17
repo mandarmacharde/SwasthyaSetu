@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
@@ -10,11 +10,11 @@ export default function Home() {
         <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
           <h1 className="text-lg md:text-xl font-bold text-emerald-700">SwasthyaSetu</h1>
           <div className="flex gap-2 md:gap-3">
-            <Link href="/demo-call">
-              <Button variant="default" size="sm">Try Demo</Button>
+            <Link href="/demo-call" className={buttonVariants({ variant: "default", size: "sm" })}>
+              Try Demo
             </Link>
-            <Link href="/login">
-              <Button variant="outline" size="sm">Login</Button>
+            <Link href="/login" className={buttonVariants({ variant: "outline", size: "sm" })}>
+              Login
             </Link>
           </div>
         </div>
@@ -38,15 +38,17 @@ export default function Home() {
           get routed to the right care — no smartphone, no typing, no English required.
         </p>
         <div className="flex flex-col sm:flex-row gap-3 justify-center px-4">
-          <Link href="/demo-call">
-            <Button size="lg" className="bg-emerald-600 hover:bg-emerald-700 text-base px-8 w-full sm:w-auto">
-              Try the Demo
-            </Button>
+          <Link 
+            href="/demo-call" 
+            className={buttonVariants({ size: "lg", className: "bg-emerald-600 hover:bg-emerald-700 text-base px-8 w-full sm:w-auto" })}
+          >
+            Try the Demo
           </Link>
-          <Link href="/login">
-            <Button size="lg" variant="outline" className="text-base px-8 w-full sm:w-auto">
-              ASHA / Doctor Login
-            </Button>
+          <Link 
+            href="/login" 
+            className={buttonVariants({ size: "lg", variant: "outline", className: "text-base px-8 w-full sm:w-auto" })}
+          >
+            ASHA / Doctor Login
           </Link>
         </div>
       </section>

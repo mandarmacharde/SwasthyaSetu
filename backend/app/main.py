@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import GROQ_API_KEY
 from app.supabase_client import get_supabase
-from app.api import triage, cases, seed, detect, users, ivr, tts
+from app.api import triage, cases, seed, detect, users, tts, patients
 
 
 @asynccontextmanager
@@ -32,8 +32,8 @@ app.include_router(detect.router)
 app.include_router(cases.router)
 app.include_router(users.router)
 app.include_router(seed.router)
-app.include_router(ivr.router)
 app.include_router(tts.router)
+app.include_router(patients.router)
 
 
 @app.get("/health")

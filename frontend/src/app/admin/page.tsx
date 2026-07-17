@@ -7,11 +7,15 @@ import { CaseTable } from "@/components/case-table";
 import { SkeletonDashboard } from "@/components/skeleton-dashboard";
 import { Button } from "@/components/ui/button";
 import { api, Case } from "@/lib/api";
+import { getUser } from "@/lib/auth";
+import { useRouter } from "next/navigation";
 
 export default function AdminDashboard() {
+  const router = useRouter();
   const [cases, setCases] = useState<Case[]>([]);
   const [loading, setLoading] = useState(true);
   const [seeding, setSeeding] = useState(false);
+  const [user] = useState(getUser);
 
   const loadCases = () => {
     setLoading(true);
@@ -42,10 +46,15 @@ export default function AdminDashboard() {
   }));
 
   return (
-    <DashboardLayout role="admin" userName="Admin">
-      <div className="mb-6">
-        <h1 className="text-xl md:text-2xl font-bold">Admin Overview</h1>
-        <p className="text-sm text-gray-500">System-wide triage analytics</p>
+    <DashboardLayout role="admin" userName={user.name}>
+      <div className="mb-6 flex items-center justify-between">
+        <div>
+          <h1 className="text-xl md:text-2xl font-bold">Admin Overview</h1>
+          <p className="text-sm text-gray-500">System-wide triage analytics</p>
+        </div>
+        <Button size="sm" variant="outline" onClick={seedDemo} disabled={seeding}>
+          {seeding ? "Seeding..." : "🌱 Seed Demo Data"}
+        </Button>
       </div>
 
       {loading ? <SkeletonDashboard cols={4} /> : (
@@ -77,9 +86,7 @@ export default function AdminDashboard() {
                       <div className="flex-1 h-4 bg-gray-100 rounded-full overflow-hidden">
                         <div
                           className="h-full bg-emerald-500 rounded-full transition-all duration-700"
-                          style={{
-                            width: `${(count / cases.length) * 100}%`,
-                          }}
+                          style={{ width: `${(count / cases.length) * 100}%` }}
                         />
                       </div>
                       <span className="text-xs text-gray-500 w-8 text-right">{count}</span>
@@ -93,6 +100,7 @@ export default function AdminDashboard() {
                 <div className="space-y-2">
                   {["emergency", "high", "medium", "low"].map((level) => {
                     const count = cases.filter((c) => c.urgency === level).length;
+                    const pct = cases.length > 0 ? (count / cases.length) * 100 : 0;
                     return (
                       <div key={level} className="flex items-center gap-2">
                         <span className="text-xs md:text-sm w-20 capitalize">{level}</span>
@@ -104,7 +112,7 @@ export default function AdminDashboard() {
                               : level === "medium" ? "bg-yellow-500"
                               : "bg-green-500"
                             }`}
-                            style={{ width: `${(count / cases.length) * 100}%` }}
+                            style={{ width: `${pct}%` }}
                           />
                         </div>
                         <span className="text-xs text-gray-500 w-8 text-right">{count}</span>
@@ -125,7 +133,10 @@ export default function AdminDashboard() {
                 <p className="text-xs mt-1">Run a triage or seed demo data to populate.</p>
               </div>
             ) : (
-              <CaseTable cases={cases.slice(0, 20)} />
+              <CaseTable
+                cases={cases.slice(0, 20)}
+                onCaseClick={(c) => router.push(`/cases/${c.id}`)}
+              />
             )}
           </div>
         </>

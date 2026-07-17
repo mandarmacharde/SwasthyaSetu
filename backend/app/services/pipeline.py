@@ -1,4 +1,4 @@
-from app.services import stt, tts, triage_engine, session as sess
+from app.services import stt_ai4b, tts, triage_engine, session as sess
 
 
 async def process_audio_turn(
@@ -10,7 +10,7 @@ async def process_audio_turn(
     if session_id is None:
         session_id = await sess.create_session(language, phone)
 
-    transcript = stt.transcribe(audio_bytes, language=language)
+    transcript = stt_ai4b.transcribe(audio_bytes, language=language)
     if not transcript:
         return {"session_id": session_id, "error": "no speech detected"}
 

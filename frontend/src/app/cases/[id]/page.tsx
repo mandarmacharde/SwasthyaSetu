@@ -6,7 +6,6 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 import { api, Case } from "@/lib/api";
 import { URGENCY_COLORS, STATUS_COLORS } from "@/lib/theme";
 import { getUser } from "@/lib/auth";
@@ -41,6 +40,8 @@ export default function CaseDetailPage({ params }: { params: Promise<{ id: strin
     try { return JSON.parse(caseData.triage_summary); } catch { return null; }
   };
 
+  const handlePrint = () => window.print();
+
   if (loading) return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center">
       <p className="text-gray-400">Loading...</p>
@@ -60,12 +61,22 @@ export default function CaseDetailPage({ params }: { params: Promise<{ id: strin
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <header className="border-b bg-white px-4 h-14 flex items-center gap-3">
+      <header className="border-b bg-white px-4 h-14 flex items-center gap-3 print:hidden">
         <Link href={`/${user.role}`} className="text-sm text-emerald-700 font-medium">← Back to Dashboard</Link>
         <span className="text-xs text-gray-400">Case #{caseData.id}</span>
+        <div className="ml-auto flex gap-2">
+          {caseData.patient_id && (
+            <Button size="sm" variant="outline" className="text-xs" onClick={() => router.push(`/patients/${caseData.patient_id}`)}>
+              Patient History
+            </Button>
+          )}
+          <Button size="sm" variant="outline" className="text-xs" onClick={handlePrint}>
+            Print / PDF
+          </Button>
+        </div>
       </header>
 
-      <div className="max-w-3xl mx-auto p-4 space-y-4">
+      <div className="max-w-3xl mx-auto p-4 space-y-4" id="case-report">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
@@ -77,7 +88,7 @@ export default function CaseDetailPage({ params }: { params: Promise<{ id: strin
                 {new Date(caseData.created_at).toLocaleString("en-IN")}
               </p>
             </div>
-            <div className="flex gap-1">
+            <div className="flex gap-1 print:hidden">
               {(isAsha || isDoctor) && caseData.status === "open" && (
                 <Button size="sm" onClick={() => updateCase({ assigned_to: user.id || 1, status: "assigned" })} disabled={updating}>
                   {updating ? "..." : "Assign to Me"}
@@ -115,7 +126,7 @@ export default function CaseDetailPage({ params }: { params: Promise<{ id: strin
               </div>
             </div>
 
-            {summary && summary.next_question && (
+            {summary?.next_question && (
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
                 <p className="text-xs text-blue-500 font-medium mb-1">Last AI Question</p>
                 <p className="text-sm text-blue-800">{summary.next_question}</p>
@@ -138,7 +149,7 @@ export default function CaseDetailPage({ params }: { params: Promise<{ id: strin
             {transcript.length === 0 ? (
               <p className="text-sm text-gray-400">No transcript available.</p>
             ) : (
-              <div className="space-y-3 max-h-96 overflow-y-auto pr-2">
+              <div className="space-y-3 max-h-96 overflow-y-auto pr-2 print:max-h-none print:overflow-visible">
                 {transcript.map((turn, i) => (
                   <div key={i} className={`flex gap-3 p-3 rounded-lg ${turn.role === "user" ? "bg-gray-50" : "bg-emerald-50"}`}>
                     <span className="text-lg shrink-0">{turn.role === "user" ? "👤" : "🤖"}</span>
