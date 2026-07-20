@@ -2,10 +2,10 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { Button } from "@/components/ui/button";
+import { usePathname, useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { LogOut } from "lucide-react";
 
 const navItems = {
   asha: [
@@ -29,8 +29,10 @@ export function DashboardLayout({
   userName: string;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
   const items = navItems[role];
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col md:flex-row">
@@ -76,14 +78,36 @@ export function DashboardLayout({
           ))}
         </nav>
         <Separator />
-        <div className="p-4 flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-sm font-medium text-emerald-700">
-            {userName.charAt(0)}
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium truncate">{userName}</p>
-            <Badge variant="outline" className="text-[10px] capitalize">{role}</Badge>
-          </div>
+        <div className="p-4 relative">
+          <button
+            onClick={() => setProfileOpen(!profileOpen)}
+            className="flex items-center gap-3 w-full text-left"
+          >
+            <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-sm font-medium text-emerald-700">
+              {userName.charAt(0)}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium truncate">{userName}</p>
+              <Badge variant="outline" className="text-[10px] capitalize">{role}</Badge>
+            </div>
+          </button>
+          {profileOpen && (
+            <>
+              <div className="fixed inset-0 z-10" onClick={() => setProfileOpen(false)} />
+              <div className="absolute bottom-full left-2 right-2 mb-1 bg-white border rounded-lg shadow-lg z-20 overflow-hidden">
+                <button
+                  onClick={() => {
+                    localStorage.removeItem("swasthyasetu_user");
+                    router.push("/login");
+                  }}
+                  className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                >
+                  <LogOut className="w-4 h-4" />
+                  Sign Out
+                </button>
+              </div>
+            </>
+          )}
         </div>
       </aside>
       <main className="flex-1 overflow-auto">

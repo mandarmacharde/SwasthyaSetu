@@ -22,7 +22,8 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
 
   const login = (name: string, targetRole: string, id?: number) => {
-    localStorage.setItem("swasthyasetu_user", JSON.stringify({ role: targetRole, name, id }));
+    const userId = id ?? Math.floor(Math.random() * 10000) + 100;
+    localStorage.setItem("swasthyasetu_user", JSON.stringify({ role: targetRole, name, id: userId }));
     router.push(`/${targetRole}`);
   };
 
