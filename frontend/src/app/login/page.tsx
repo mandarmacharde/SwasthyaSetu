@@ -18,8 +18,8 @@ const DEMO_USERS = [
 export default function LoginPage() {
   const router = useRouter();
   const [role, setRole] = useState<"asha" | "doctor" | "admin">("asha");
-  const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
 
   const login = (name: string, targetRole: string, id?: number) => {
     localStorage.setItem("swasthyasetu_user", JSON.stringify({ role: targetRole, name, id }));
@@ -28,8 +28,8 @@ export default function LoginPage() {
 
   const handleFormLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) return;
-    login(name.trim(), role);
+    if (!username.trim()) return;
+    login(username.trim(), role);
   };
 
   return (
@@ -74,29 +74,30 @@ export default function LoginPage() {
             <form onSubmit={handleFormLogin} className="space-y-3">
               <div>
                 <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5 block">
-                  Your Name
+                  Username
                 </label>
                 <Input
-                  placeholder="Enter your name"
-                  value={name}
-                  onChange={e => setName(e.target.value)}
+                  placeholder="Enter your username"
+                  value={username}
+                  onChange={e => setUsername(e.target.value)}
                   className="rounded-xl border-slate-200/60 h-10"
                 />
               </div>
               <div>
                 <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5 block">
-                  Phone (optional)
+                  Password
                 </label>
                 <Input
-                  placeholder="+91 98765 43210"
-                  value={phone}
-                  onChange={e => setPhone(e.target.value)}
+                  type="password"
+                  placeholder="Enter your password"
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
                   className="rounded-xl border-slate-200/60 h-10"
                 />
               </div>
               <Button
                 type="submit"
-                disabled={!name.trim()}
+                disabled={!username.trim()}
                 className="w-full rounded-xl h-10 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-sm shadow-emerald-200 disabled:opacity-50"
               >
                 <LogIn className="w-4 h-4 mr-2" /> Sign in as {role === "asha" ? "ASHA" : role}
