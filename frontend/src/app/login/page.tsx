@@ -10,15 +10,28 @@ interface User {
   id: number; name: string; phone: string; role: string; district: string;
 }
 
+const ROLE_ICONS: Record<string, string> = { asha: "👩‍⚕️", doctor: "🩺", admin: "👑" };
+const ROLE_COLORS: Record<string, string> = {
+  asha: "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100",
+  doctor: "bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100",
+  admin: "bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100",
+};
+const ROLE_ACTIVE: Record<string, string> = {
+  asha: "bg-emerald-600 border-emerald-600 text-white shadow-md shadow-emerald-200",
+  doctor: "bg-blue-600 border-blue-600 text-white shadow-md shadow-blue-200",
+  admin: "bg-purple-600 border-purple-600 text-white shadow-md shadow-purple-200",
+};
+const ROLE_DOT: Record<string, string> = {
+  asha: "bg-emerald-500", doctor: "bg-blue-500", admin: "bg-purple-500",
+};
+
 export default function LoginPage() {
   const router = useRouter();
   const [tab, setTab] = useState<"login" | "signup">("login");
   const [users, setUsers] = useState<User[]>([]);
-
   const [loginName, setLoginName] = useState("");
   const [loginRole, setLoginRole] = useState("asha");
   const [loginMsg, setLoginMsg] = useState("");
-
   const [signupName, setSignupName] = useState("");
   const [signupPhone, setSignupPhone] = useState("");
   const [signupRole, setSignupRole] = useState<"asha" | "doctor">("asha");
@@ -27,20 +40,14 @@ export default function LoginPage() {
 
   const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
-  const fetchUsers = () => {
-    fetch(`${API}/api/users/`)
-      .then((r) => r.json())
-      .then(setUsers)
-      .catch(() => {});
-  };
-
+  const fetchUsers = () => { fetch(`${API}/api/users/`).then(r => r.json()).then(setUsers).catch(() => {}); };
   useEffect(() => { fetchUsers(); }, []);
 
   const handleLogin = () => {
     if (!loginName.trim()) { setLoginMsg("Enter your name"); return; }
-    const match = users.find((u) => u.name.toLowerCase() === loginName.trim().toLowerCase() && u.role === loginRole);
+    const match = users.find(u => u.name.toLowerCase() === loginName.trim().toLowerCase() && u.role === loginRole);
     if (!match && loginRole !== "admin") {
-      setLoginMsg(`No ${loginRole} found with that name. Try Sign Up first.`);
+      setLoginMsg(`No ${loginRole} found with that name`);
       return;
     }
     const id = loginRole === "admin" ? 0 : match!.id;
@@ -62,8 +69,7 @@ export default function LoginPage() {
       const created = data.user;
       localStorage.setItem("swasthyasetu_user", JSON.stringify({ role: created.role, name: created.name, id: created.id }));
       fetchUsers();
-      setSignupMsg(`✅ Created! Logging in...`);
-      setTimeout(() => router.push(`/${created.role}`), 800);
+      setTimeout(() => router.push(`/${created.role}`), 500);
     } catch (e: any) { setSignupMsg(e.message); }
   };
 
@@ -72,143 +78,141 @@ export default function LoginPage() {
     router.push(`/${u.role}`);
   };
 
+  const RoleBadge = ({ role, size = "sm" }: { role: string; size?: "sm" | "xs" }) => (
+    <span className={`inline-flex items-center gap-1 font-medium rounded-full border ${size === "xs" ? "text-[10px] px-1.5 py-0.5" : "text-xs px-2.5 py-1"} ${ROLE_COLORS[role] || ""}`}>
+      {ROLE_ICONS[role] || ""} {role.charAt(0).toUpperCase() + role.slice(1)}
+    </span>
+  );
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center p-4">
-      <div className="w-full max-w-lg space-y-6">
-        <div className="text-center">
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent">SwasthyaSetu</h1>
-          <p className="text-sm text-gray-400 mt-1">Healthcare Voice Triage Platform</p>
+    <div className="min-h-screen bg-gradient-to-b from-emerald-50 via-white to-white flex items-center justify-center p-4">
+      <div className="w-full max-w-md space-y-5">
+        <div className="text-center pt-4">
+          <div className="w-16 h-16 bg-emerald-100 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-sm">
+            <span className="text-3xl">🏥</span>
+          </div>
+          <h1 className="text-2xl font-bold text-gray-900 tracking-tight">SwasthyaSetu</h1>
+          <p className="text-sm text-gray-500 mt-0.5">Healthcare Voice Triage Platform</p>
         </div>
 
-        <div className="bg-gray-800/50 backdrop-blur border border-gray-700 rounded-2xl p-6 shadow-2xl">
-          <div className="flex gap-2 mb-6">
-            {(["login", "signup"] as const).map((t) => (
-              <button key={t} onClick={() => setTab(t)}
-                className={`flex-1 py-2.5 rounded-xl text-sm font-medium transition-all ${
-                  tab === t
-                    ? "bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-lg"
-                    : "bg-gray-700 text-gray-400 hover:bg-gray-600"
-                }`}>
-                {t === "login" ? "🔑 Sign In" : "📝 Sign Up"}
-              </button>
-            ))}
+        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+          <div className="flex border-b border-gray-100">
+            <button onClick={() => setTab("login")}
+              className={`flex-1 py-3 text-sm font-medium text-center transition-colors relative ${tab === "login" ? "text-emerald-700" : "text-gray-400 hover:text-gray-600"}`}>
+              Sign In
+              {tab === "login" && <span className="absolute bottom-0 left-4 right-4 h-0.5 bg-emerald-500 rounded-full" />}
+            </button>
+            <button onClick={() => setTab("signup")}
+              className={`flex-1 py-3 text-sm font-medium text-center transition-colors relative ${tab === "signup" ? "text-emerald-700" : "text-gray-400 hover:text-gray-600"}`}>
+              Sign Up
+              {tab === "signup" && <span className="absolute bottom-0 left-4 right-4 h-0.5 bg-emerald-500 rounded-full" />}
+            </button>
           </div>
 
-          {tab === "login" ? (
-            <div className="space-y-4">
-              <div>
-                <label className="text-xs text-gray-400 mb-1.5 block">Full Name</label>
-                <Input placeholder="e.g. Priya Sharma" value={loginName} onChange={e => setLoginName(e.target.value)}
-                  className="bg-gray-700 border-gray-600 text-white placeholder:text-gray-500" />
-              </div>
-              <div>
-                <label className="text-xs text-gray-400 mb-1.5 block">Role</label>
-                <div className="flex gap-2">
-                  {(["asha", "doctor", "admin"] as const).map((r) => (
-                    <button key={r} onClick={() => setLoginRole(r)}
-                      className={`flex-1 py-2 rounded-xl text-sm font-medium transition-all ${
-                        loginRole === r
-                          ? r === "asha" ? "bg-emerald-600 text-white shadow-lg"
-                            : r === "doctor" ? "bg-blue-600 text-white shadow-lg"
-                            : "bg-purple-600 text-white shadow-lg"
-                          : "bg-gray-700 text-gray-400 hover:bg-gray-600"
-                      }`}>
-                      {r === "asha" ? "👩‍⚕️ ASHA" : r === "doctor" ? "🩺 Doctor" : "👑 Admin"}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <Button onClick={handleLogin} disabled={!loginName.trim()}
-                className="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 rounded-xl h-11">
-                Sign In
-              </Button>
-              {loginMsg && (
-                <p className={`text-sm text-center py-2 px-3 rounded-lg ${loginMsg.startsWith("No") ? "bg-red-900/50 text-red-300" : "bg-emerald-900/50 text-emerald-300"}`}>
-                  {loginMsg}
-                </p>
-              )}
-            </div>
-          ) : (
-            <div className="space-y-4">
-              <div className="grid sm:grid-cols-2 gap-4">
+          <div className="p-5">
+            {tab === "login" ? (
+              <div className="space-y-4">
                 <div>
-                  <label className="text-xs text-gray-400 mb-1.5 block">Full Name</label>
-                  <Input placeholder="e.g. Priya Sharma" value={signupName} onChange={e => setSignupName(e.target.value)}
-                    className="bg-gray-700 border-gray-600 text-white placeholder:text-gray-500" />
-                </div>
-                <div>
-                  <label className="text-xs text-gray-400 mb-1.5 block">Phone</label>
-                  <Input placeholder="e.g. 9876543210" value={signupPhone} onChange={e => setSignupPhone(e.target.value)}
-                    className="bg-gray-700 border-gray-600 text-white placeholder:text-gray-500" />
-                </div>
-              </div>
-              <div className="grid sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="text-xs text-gray-400 mb-1.5 block">District</label>
-                  <Input placeholder="e.g. Pune" value={signupDistrict} onChange={e => setSignupDistrict(e.target.value)}
-                    className="bg-gray-700 border-gray-600 text-white placeholder:text-gray-500" />
-                </div>
-                <div>
-                  <label className="text-xs text-gray-400 mb-1.5 block">Role</label>
-                  <div className="flex gap-2 pt-1">
-                    <button onClick={() => setSignupRole("asha")}
-                      className={`flex-1 py-2 rounded-xl text-sm font-medium transition-all ${signupRole === "asha" ? "bg-emerald-600 text-white shadow-lg" : "bg-gray-700 text-gray-400 hover:bg-gray-600"}`}>
-                      👩‍⚕️ ASHA
-                    </button>
-                    <button onClick={() => setSignupRole("doctor")}
-                      className={`flex-1 py-2 rounded-xl text-sm font-medium transition-all ${signupRole === "doctor" ? "bg-blue-600 text-white shadow-lg" : "bg-gray-700 text-gray-400 hover:bg-gray-600"}`}>
-                      🩺 Doctor
-                    </button>
+                  <label className="text-xs font-medium text-gray-600 mb-1.5 block">Role</label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {["asha", "doctor", "admin"].map(r => (
+                      <button key={r} onClick={() => setLoginRole(r)}
+                        className={`py-2.5 rounded-xl text-sm font-medium border transition-all ${loginRole === r ? ROLE_ACTIVE[r] : "border-gray-200 text-gray-500 hover:border-gray-300 hover:bg-gray-50"}`}>
+                        <div className="text-base mb-0.5">{ROLE_ICONS[r]}</div>
+                        <span className="text-[11px]">{r === "asha" ? "ASHA" : r.charAt(0).toUpperCase() + r.slice(1)}</span>
+                      </button>
+                    ))}
                   </div>
                 </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-600 mb-1.5 block">Full Name</label>
+                  <Input placeholder="Enter your name" value={loginName} onChange={e => setLoginName(e.target.value)}
+                    onKeyDown={e => e.key === "Enter" && handleLogin()}
+                    className="border-gray-200 focus:border-emerald-400 focus:ring-emerald-400/20 rounded-xl h-11" />
+                </div>
+                <Button onClick={handleLogin} disabled={!loginName.trim()}
+                  className="w-full bg-emerald-600 hover:bg-emerald-700 rounded-xl h-11 shadow-sm">
+                  Sign In
+                </Button>
+                {loginMsg && <p className="text-sm text-center text-red-500 bg-red-50 rounded-xl py-2">{loginMsg}</p>}
               </div>
-              <Button onClick={handleSignup} disabled={!signupName.trim() || !signupPhone.trim()}
-                className="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 rounded-xl h-11">
-                Create Account & Sign In
-              </Button>
-              {signupMsg && (
-                <p className={`text-sm text-center py-2 px-3 rounded-lg ${signupMsg.startsWith("✅") ? "bg-emerald-900/50 text-emerald-300" : "bg-red-900/50 text-red-300"}`}>
-                  {signupMsg}
-                </p>
-              )}
-            </div>
-          )}
+            ) : (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs font-medium text-gray-600 mb-1.5 block">Full Name</label>
+                    <Input placeholder="Priya Sharma" value={signupName} onChange={e => setSignupName(e.target.value)}
+                      className="border-gray-200 focus:border-emerald-400 focus:ring-emerald-400/20 rounded-xl h-11" />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-gray-600 mb-1.5 block">Phone</label>
+                    <Input placeholder="9876543210" value={signupPhone} onChange={e => setSignupPhone(e.target.value)}
+                      className="border-gray-200 focus:border-emerald-400 focus:ring-emerald-400/20 rounded-xl h-11" />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs font-medium text-gray-600 mb-1.5 block">District</label>
+                    <Input placeholder="Pune" value={signupDistrict} onChange={e => setSignupDistrict(e.target.value)}
+                      className="border-gray-200 focus:border-emerald-400 focus:ring-emerald-400/20 rounded-xl h-11" />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-gray-600 mb-1.5 block">Role</label>
+                    <div className="grid grid-cols-2 gap-2 pt-0.5">
+                      <button onClick={() => setSignupRole("asha")}
+                        className={`py-2.5 rounded-xl text-sm font-medium border transition-all ${signupRole === "asha" ? "bg-emerald-600 border-emerald-600 text-white shadow-sm" : "border-gray-200 text-gray-500 hover:border-gray-300"}`}>
+                        👩‍⚕️ ASHA
+                      </button>
+                      <button onClick={() => setSignupRole("doctor")}
+                        className={`py-2.5 rounded-xl text-sm font-medium border transition-all ${signupRole === "doctor" ? "bg-blue-600 border-blue-600 text-white shadow-sm" : "border-gray-200 text-gray-500 hover:border-gray-300"}`}>
+                        🩺 Doctor
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                <Button onClick={handleSignup} disabled={!signupName.trim() || !signupPhone.trim()}
+                  className="w-full bg-emerald-600 hover:bg-emerald-700 rounded-xl h-11 shadow-sm">
+                  Create Account
+                </Button>
+                {signupMsg && (
+                  <p className={`text-sm text-center rounded-xl py-2 ${signupMsg.includes("fail") || signupMsg.includes("error") ? "text-red-500 bg-red-50" : "text-emerald-600 bg-emerald-50"}`}>
+                    {signupMsg}
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
         </div>
 
-        <div className="bg-gray-800/50 backdrop-blur border border-gray-700 rounded-2xl p-5 shadow-xl">
+        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-semibold text-gray-300">👥 User Directory</h2>
-            <Badge variant="outline" className="text-[10px] text-gray-400 border-gray-600">{users.length} users</Badge>
+            <h2 className="text-sm font-semibold text-gray-800">User Directory</h2>
+            <Badge variant="outline" className="text-[10px] text-gray-400 border-gray-200">{users.length} users</Badge>
           </div>
           {users.length === 0 ? (
-            <p className="text-xs text-gray-500 text-center py-6">No users loaded. Seed demo data or create one above.</p>
+            <div className="text-center py-6">
+              <p className="text-2xl mb-2">👥</p>
+              <p className="text-xs text-gray-400">No users loaded. Seed demo data or create one above.</p>
+            </div>
           ) : (
-            <div className="space-y-2 max-h-60 overflow-y-auto">
-              {users.map((u) => (
+            <div className="space-y-1.5 max-h-56 overflow-y-auto">
+              {users.map(u => (
                 <button key={u.id} onClick={() => quickLogin(u)}
-                  className="w-full flex items-center gap-3 bg-gray-700/50 hover:bg-gray-700 rounded-xl p-3 transition-all text-left group">
-                  <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold shrink-0 ${
-                    u.role === "asha" ? "bg-emerald-900/50 text-emerald-300" :
-                    u.role === "doctor" ? "bg-blue-900/50 text-blue-300" :
-                    "bg-purple-900/50 text-purple-300"
-                  }`}>
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-gray-50 transition-colors text-left group border border-transparent hover:border-gray-100">
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${ROLE_DOT[u.role] + " bg-opacity-10"} ${u.role === "asha" ? "bg-emerald-100 text-emerald-700" : u.role === "doctor" ? "bg-blue-100 text-blue-700" : "bg-purple-100 text-purple-700"}`}>
                     {u.name.charAt(0)}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-200 truncate">{u.name}</p>
-                    <p className="text-xs text-gray-500 truncate">{u.phone} · {u.district || "—"}</p>
+                    <p className="text-sm font-medium text-gray-800 truncate">{u.name}</p>
+                    <p className="text-xs text-gray-400 truncate">{u.phone} · {u.district || "—"}</p>
                   </div>
-                  <Badge className={`text-[10px] shrink-0 ${
-                    u.role === "asha" ? "bg-emerald-900/50 text-emerald-300 border-emerald-700" :
-                    u.role === "doctor" ? "bg-blue-900/50 text-blue-300 border-blue-700" :
-                    "bg-purple-900/50 text-purple-300 border-purple-700"
-                  }`} variant="outline">{u.role}</Badge>
-                  <span className="text-gray-600 group-hover:text-gray-400 text-lg ml-1">→</span>
+                  <RoleBadge role={u.role} size="xs" />
+                  <span className="text-gray-300 group-hover:text-gray-400 text-base ml-0.5">→</span>
                 </button>
               ))}
             </div>
           )}
-          <p className="text-xs text-gray-600 text-center mt-3">Click any user to instantly log in</p>
+          <p className="text-center text-[10px] text-gray-400 mt-3">Click any user to instantly log in</p>
         </div>
       </div>
     </div>
