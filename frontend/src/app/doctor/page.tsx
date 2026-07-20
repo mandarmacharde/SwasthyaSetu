@@ -13,8 +13,11 @@ import { useRouter } from "next/navigation";
 
 export default function DoctorDashboard() {
   const router = useRouter();
-  const [user] = useState(getUser);
+  const [user, setUser] = useState<{ name: string; role: string; id?: number }>({ name: "", role: "doctor" });
+  const [mounted, setMounted] = useState(false);
   const [cases, setCases] = useState<Case[]>([]);
+
+  useEffect(() => { setUser(getUser()); setMounted(true); }, []);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState("open");
 

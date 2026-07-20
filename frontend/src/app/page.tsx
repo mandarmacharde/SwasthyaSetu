@@ -25,7 +25,6 @@ export default function Home() {
           <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200">Marathi</Badge>
           <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200">Hindi</Badge>
           <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200">English</Badge>
-          <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200">+19 more</Badge>
         </div>
         <h2 className="text-3xl md:text-5xl font-bold text-gray-900 mb-4 leading-tight">
           Bridging every village<br />to healthcare
@@ -63,7 +62,7 @@ export default function Home() {
           </Card>
           <Card className="text-center">
             <CardContent className="p-4 md:p-6">
-              <p className="text-2xl md:text-3xl font-bold text-emerald-600">22</p>
+              <p className="text-2xl md:text-3xl font-bold text-emerald-600">3</p>
               <p className="text-xs md:text-sm text-gray-500 mt-1">Indian languages supported</p>
             </CardContent>
           </Card>

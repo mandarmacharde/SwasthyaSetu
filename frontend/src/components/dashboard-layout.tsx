@@ -2,26 +2,20 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 
 const navItems = {
   asha: [
-    { label: "My Patients", href: "/asha", icon: "🏥" },
-    { label: "High Priority", href: "/asha?tab=urgent", icon: "🔴" },
-    { label: "Visit Log", href: "/asha?tab=visits", icon: "📋" },
+    { label: "Dashboard", href: "/asha", icon: "🏥" },
   ],
   doctor: [
-    { label: "Incoming Cases", href: "/doctor", icon: "🩺" },
-    { label: "Emergency Queue", href: "/doctor?tab=emergency", icon: "🚨" },
-    { label: "Patient History", href: "/doctor?tab=history", icon: "📄" },
+    { label: "Dashboard", href: "/doctor", icon: "🩺" },
   ],
   admin: [
-    { label: "Overview", href: "/admin", icon: "📊" },
-    { label: "District Analytics", href: "/admin?tab=districts", icon: "🗺️" },
-    { label: "Languages", href: "/admin?tab=languages", icon: "🌐" },
+    { label: "Dashboard", href: "/admin", icon: "📊" },
   ],
 };
 
@@ -35,8 +29,11 @@ export function DashboardLayout({
   userName: string;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
   const items = navItems[role];
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const signOut = () => { localStorage.removeItem("swasthyasetu_user"); router.push("/login"); };
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col md:flex-row">
@@ -90,6 +87,11 @@ export function DashboardLayout({
             <p className="text-sm font-medium truncate">{userName}</p>
             <Badge variant="outline" className="text-[10px] capitalize">{role}</Badge>
           </div>
+        </div>
+        <div className="px-4 pb-4">
+          <button onClick={signOut} className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-gray-500 hover:bg-gray-100 transition-colors">
+            Sign Out
+          </button>
         </div>
       </aside>
       <main className="flex-1 overflow-auto">

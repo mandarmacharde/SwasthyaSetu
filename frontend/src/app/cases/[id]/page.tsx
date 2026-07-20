@@ -16,7 +16,9 @@ export default function CaseDetailPage({ params }: { params: Promise<{ id: strin
   const [caseData, setCaseData] = useState<Case | null>(null);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
-  const [user] = useState(getUser);
+  const [user, setUser] = useState<{ name: string; role: string; id?: number }>({ name: "", role: "asha" });
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setUser(getUser()); setMounted(true); }, []);
 
   useEffect(() => {
     api.cases.get(Number(id)).then(setCaseData).catch(console.error).finally(() => setLoading(false));

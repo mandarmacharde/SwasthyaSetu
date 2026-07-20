@@ -26,7 +26,27 @@ class STTBackend(ABC):
         ...
 
 
-# ── Active backend: faster-whisper ─────────────────────────────────
+# ── Default backend: Groq Whisper API ──────────────────────────────
+
+class GroqWhisperBackend(STTBackend):
+    def transcribe(self, audio_bytes: bytes, language: str | None) -> str:
+        try:
+            from groq import Groq
+            from app.config import GROQ_API_KEY
+            client = Groq(api_key=GROQ_API_KEY)
+            transcription = client.audio.transcriptions.create(
+                model="whisper-large-v3-turbo",
+                file=("audio.webm", audio_bytes, "audio/webm"),
+                language=language or "mr",
+                response_format="text",
+            )
+            return transcription.strip()
+        except Exception as e:
+            logger.error("Groq STT error: %s", e)
+            return ""
+
+
+# ── Fallback: local faster-whisper ─────────────────────────────────
 
 class FasterWhisperBackend(STTBackend):
     _model = None
@@ -88,9 +108,10 @@ class BHASHINIBackend(STTBackend):
 # ── Backend selector ──────────────────────────────────────────────
 
 _BACKENDS = {
-    "whisper":    FasterWhisperBackend,
-    "ai4bharat":  AI4BharatBackend,
-    "bhashini":   BHASHINIBackend,
+    "groq":      GroqWhisperBackend,
+    "whisper":   FasterWhisperBackend,
+    "ai4bharat": AI4BharatBackend,
+    "bhashini":  BHASHINIBackend,
 }
 
 _active_backend: STTBackend | None = None
@@ -99,11 +120,11 @@ def select_backend(name: str | None = None) -> STTBackend:
     global _active_backend
     if _active_backend is not None:
         return _active_backend
-    name = name or os.getenv("STT_BACKEND", "whisper").lower()
+    name = name or os.getenv("STT_BACKEND", "groq").lower()
     cls = _BACKENDS.get(name)
     if cls is None:
-        logger.warning("Unknown STT backend '%s', using whisper", name)
-        cls = FasterWhisperBackend
+        logger.warning("Unknown STT backend '%s', using groq", name)
+        cls = GroqWhisperBackend
     _active_backend = cls()
     return _active_backend
 

@@ -17,8 +17,8 @@ async def list_cases(
     query = sb.table("cases").select("*").order("created_at", desc=True)
     if status:
         statuses = [s.strip() for s in status.split(",")]
-        for s in statuses:
-            query = query.or_(f"status.eq.{s}")
+        filters = ",".join(f"status.eq.{s}" for s in statuses)
+        query = query.or_(filters)
     if urgency:
         query = query.eq("urgency", urgency)
     if assigned_to is not None:

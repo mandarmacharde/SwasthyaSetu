@@ -44,23 +44,7 @@ export default function LoginPage() {
           </div>
 
           <div className="border rounded-lg divide-y">
-            {DEMO_USERS.filter((u) => u.role === role || role === "admin").map((u) => (
-              <button
-                key={u.id}
-                className="w-full flex items-center gap-3 p-3 hover:bg-gray-50 transition-colors text-left"
-                onClick={() => login(u.name, role, u.id)}
-              >
-                <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold">
-                  {u.name.charAt(0)}
-                </div>
-                <div className="flex-1">
-                  <p className="font-medium text-sm">{u.name}</p>
-                  <p className="text-xs text-gray-400">{u.phone} · <Badge variant="outline" className="text-[10px]">{u.role}</Badge></p>
-                </div>
-                <span className="text-gray-300 text-lg">→</span>
-              </button>
-            ))}
-            {role === "admin" && (
+            {role === "admin" ? (
               <button
                 className="w-full flex items-center gap-3 p-3 hover:bg-gray-50 transition-colors text-left"
                 onClick={() => login("Admin", "admin")}
@@ -72,6 +56,23 @@ export default function LoginPage() {
                 </div>
                 <span className="text-gray-300 text-lg">→</span>
               </button>
+            ) : (
+              DEMO_USERS.filter((u) => u.role === role).map((u) => (
+                <button
+                  key={u.id}
+                  className="w-full flex items-center gap-3 p-3 hover:bg-gray-50 transition-colors text-left"
+                  onClick={() => login(u.name, role, u.id)}
+                >
+                  <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold">
+                    {u.name.charAt(0)}
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-medium text-sm">{u.name}</p>
+                    <p className="text-xs text-gray-400">{u.phone} · <Badge variant="outline" className="text-[10px]">{u.role}</Badge></p>
+                  </div>
+                  <span className="text-gray-300 text-lg">→</span>
+                </button>
+              ))
             )}
           </div>
 
