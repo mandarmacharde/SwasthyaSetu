@@ -152,9 +152,12 @@ export default function DemoCallPage() {
               await playAudioFromBase64(result.reply_audio_base64);
             }
 
-            setStatus("");
             if (mountedRef.current && !isCompleteRef.current) {
+              setStatus("Listening...");
+              await new Promise(r => setTimeout(r, 1500));
               startRecording();
+            } else {
+              setStatus("");
             }
           } catch {
             if (mountedRef.current) {
