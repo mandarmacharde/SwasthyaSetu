@@ -170,10 +170,6 @@ Open `/login` and pick a role. Admin can create new ASHA/Doctor accounts from th
 | `GROQ_API_KEY` | ✅ Yes | Groq API key for Llama and Whisper |
 | `SUPABASE_URL` | ✅ Yes | Supabase project URL |
 | `SUPABASE_KEY` | ✅ Yes | Supabase anon/public key |
-| `GROQ_MODEL` | ❌ No | Groq model (default: `llama-3.3-70b-versatile`) |
-| `STT_BACKEND` | ❌ No | STT engine: `groq` (default) or `whisper` (local) |
-| `DEFAULT_LANG` | ❌ No | Default language (default: `mr`) |
-
 ---
 
 ## 📡 API Endpoints
