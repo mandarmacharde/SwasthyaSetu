@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Heart, ArrowRight, UserCheck, Stethoscope, Shield, LogIn, Users } from "lucide-react";
+import { Heart, ArrowRight, UserCheck, Stethoscope, Shield, LogIn } from "lucide-react";
 import Link from "next/link";
 
 const DEMO_USERS = [
@@ -114,28 +114,7 @@ export default function LoginPage() {
             </div>
 
             <div className="space-y-2">
-              {DEMO_USERS.filter((u) => u.role === role || role === "admin").map((u) => (
-                <button
-                  key={u.id}
-                  className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-emerald-50/60 transition-all text-left border border-transparent hover:border-emerald-100/50 group"
-                  onClick={() => login(u.name, role, u.id)}
-                >
-                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-emerald-100 to-teal-50 border border-emerald-200/60 flex items-center justify-center text-emerald-700 font-bold text-sm group-hover:shadow-sm transition-shadow">
-                    {u.name.charAt(0)}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm text-slate-800">{u.name}</p>
-                    <div className="flex items-center gap-2 mt-0.5">
-                      <span className="text-xs text-slate-400 font-mono">{u.phone}</span>
-                      <Badge variant="secondary" className="text-[10px] bg-emerald-50 text-emerald-700 font-semibold px-1.5 py-0 border border-emerald-200/50">
-                        {u.role.toUpperCase()}
-                      </Badge>
-                    </div>
-                  </div>
-                  <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-emerald-500 group-hover:translate-x-0.5 transition-all" />
-                </button>
-              ))}
-              {role === "admin" && (
+              {role === "admin" ? (
                 <button
                   className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-emerald-50/60 transition-all text-left border border-transparent hover:border-emerald-100/50 group"
                   onClick={() => login("System Admin", "admin")}
@@ -151,6 +130,28 @@ export default function LoginPage() {
                   </div>
                   <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-blue-500 group-hover:translate-x-0.5 transition-all" />
                 </button>
+              ) : (
+                DEMO_USERS.filter((u) => u.role === role).map((u) => (
+                  <button
+                    key={u.id}
+                    className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-emerald-50/60 transition-all text-left border border-transparent hover:border-emerald-100/50 group"
+                    onClick={() => login(u.name, role, u.id)}
+                  >
+                    <div className="w-9 h-9 rounded-full bg-gradient-to-br from-emerald-100 to-teal-50 border border-emerald-200/60 flex items-center justify-center text-emerald-700 font-bold text-sm group-hover:shadow-sm transition-shadow">
+                      {u.name.charAt(0)}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-sm text-slate-800">{u.name}</p>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <span className="text-xs text-slate-400 font-mono">{u.phone}</span>
+                        <Badge variant="secondary" className="text-[10px] bg-emerald-50 text-emerald-700 font-semibold px-1.5 py-0 border border-emerald-200/50">
+                          {u.role.toUpperCase()}
+                        </Badge>
+                      </div>
+                    </div>
+                    <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-emerald-500 group-hover:translate-x-0.5 transition-all" />
+                  </button>
+                ))
               )}
             </div>
           </CardContent>
