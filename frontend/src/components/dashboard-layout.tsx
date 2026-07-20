@@ -9,19 +9,13 @@ import { Separator } from "@/components/ui/separator";
 
 const navItems = {
   asha: [
-    { label: "My Patients", href: "/asha", icon: "🏥" },
-    { label: "High Priority", href: "/asha?tab=urgent", icon: "🔴" },
-    { label: "Visit Log", href: "/asha?tab=visits", icon: "📋" },
+    { label: "Dashboard", href: "/asha", icon: "🏥" },
   ],
   doctor: [
-    { label: "Incoming Cases", href: "/doctor", icon: "🩺" },
-    { label: "Emergency Queue", href: "/doctor?tab=emergency", icon: "🚨" },
-    { label: "Patient History", href: "/doctor?tab=history", icon: "📄" },
+    { label: "Dashboard", href: "/doctor", icon: "🩺" },
   ],
   admin: [
-    { label: "Overview", href: "/admin", icon: "📊" },
-    { label: "District Analytics", href: "/admin?tab=districts", icon: "🗺️" },
-    { label: "Languages", href: "/admin?tab=languages", icon: "🌐" },
+    { label: "Dashboard", href: "/admin", icon: "📊" },
   ],
 };
 
