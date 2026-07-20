@@ -59,7 +59,7 @@ export default function DoctorDashboard() {
           </div>
 
           {emergency.length > 0 && (
-            <div className="mb-6 p-3 bg-red-50 border-2 border-red-300 rounded-lg animate-pulse">
+            <div className="mb-6 p-3 bg-red-50 border border-red-200 rounded-lg animate-fade-in">
               <h3 className="text-sm font-semibold text-red-700 mb-2">
                 🚨 Emergency Queue — {emergency.length} case{emergency.length > 1 ? "s" : ""}
               </h3>
@@ -116,11 +116,6 @@ export default function DoctorDashboard() {
                     </p>
                   </div>
                   <div className="flex gap-1 shrink-0 ml-3">
-                    {c.patient_id && (
-                      <Button size="sm" variant="ghost" className="text-xs text-gray-400" onClick={(e) => { e.stopPropagation(); router.push(`/patients/${c.patient_id}`); }}>
-                        History
-                      </Button>
-                    )}
                     {c.status === "open" && (
                       <Button size="sm" className="text-xs" onClick={() => updateStatus(c, "assigned")}>Review</Button>
                     )}

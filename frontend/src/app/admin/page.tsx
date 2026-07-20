@@ -6,54 +6,27 @@ import { StatsCard } from "@/components/stats-card";
 import { CaseTable } from "@/components/case-table";
 import { SkeletonDashboard } from "@/components/skeleton-dashboard";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { api, Case, User } from "@/lib/api";
-import { getUser } from "@/lib/auth";
-import { useRouter } from "next/navigation";
+import { api, Case } from "@/lib/api";
 
 export default function AdminDashboard() {
-  const router = useRouter();
   const [cases, setCases] = useState<Case[]>([]);
-  const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState<{ name: string; role: string; id?: number }>({ name: "", role: "admin" });
-  const [mounted, setMounted] = useState(false);
-  const [showForm, setShowForm] = useState(false);
-  const [formName, setFormName] = useState("");
-  const [formPhone, setFormPhone] = useState("");
-  const [formRole, setFormRole] = useState<"asha" | "doctor">("asha");
-  const [formDistrict, setFormDistrict] = useState("");
-  const [formMsg, setFormMsg] = useState("");
-
-  useEffect(() => { setUser(getUser()); setMounted(true); }, []);
+  const [seeding, setSeeding] = useState(false);
 
   const loadCases = () => {
     setLoading(true);
     api.cases.list().then(setCases).catch(console.error).finally(() => setLoading(false));
   };
 
-  const loadUsers = () => {
-    api.users.list().then(setUsers).catch(console.error);
-  };
+  useEffect(() => { loadCases(); }, []);
 
-  useEffect(() => { loadCases(); loadUsers(); }, []);
-
-  const createUser = async () => {
-    if (!formName || !formPhone) return;
-    setFormMsg("");
+  const seedDemo = async () => {
+    setSeeding(true);
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/users/create`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: formName, phone: formPhone, role: formRole, district: formDistrict }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || "Failed");
-      setFormMsg(`Created ${formRole}: ${formName}`);
-      setFormName(""); setFormPhone(""); setFormDistrict("");
-      loadUsers();
-    } catch (e: any) { setFormMsg(e.message); }
+      await api.seed.demo();
+      loadCases();
+    } catch (e) { console.error(e); }
+    finally { setSeeding(false); }
   };
 
   const emergency = cases.filter((c) => c.urgency === "emergency");
@@ -69,50 +42,11 @@ export default function AdminDashboard() {
   }));
 
   return (
-    <DashboardLayout role="admin" userName={user.name}>
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="text-xl md:text-2xl font-bold">Admin Overview</h1>
-          <p className="text-sm text-gray-500">System-wide triage analytics</p>
-        </div>
-        <Button size="sm" variant="outline" onClick={() => setShowForm(!showForm)}>
-          {showForm ? "Close" : "+ New User"}
-        </Button>
+    <DashboardLayout role="admin" userName="Admin">
+      <div className="mb-6">
+        <h1 className="text-xl md:text-2xl font-bold">Admin Overview</h1>
+        <p className="text-sm text-gray-500">System-wide triage analytics</p>
       </div>
-
-      {showForm && (
-        <div className="mb-6 border rounded-lg p-4 bg-white space-y-3">
-          <h3 className="font-semibold">Create ASHA / Doctor</h3>
-          <div className="grid sm:grid-cols-2 gap-3">
-            <Input placeholder="Name" value={formName} onChange={e => setFormName(e.target.value)} />
-            <Input placeholder="Phone" value={formPhone} onChange={e => setFormPhone(e.target.value)} />
-            <Input placeholder="District" value={formDistrict} onChange={e => setFormDistrict(e.target.value)} />
-            <div className="flex gap-2">
-              <Button variant={formRole === "asha" ? "default" : "outline"} size="sm" onClick={() => setFormRole("asha")}>ASHA</Button>
-              <Button variant={formRole === "doctor" ? "default" : "outline"} size="sm" onClick={() => setFormRole("doctor")}>Doctor</Button>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <Button onClick={createUser}>Create</Button>
-            {formMsg && <span className={`text-sm ${formMsg.includes("Created") ? "text-emerald-600" : "text-red-600"}`}>{formMsg}</span>}
-          </div>
-        </div>
-      )}
-
-      {users.length > 0 && (
-        <div className="mb-6 border rounded-lg p-4 bg-white">
-          <h3 className="font-semibold mb-2">Users ({users.length})</h3>
-          <div className="space-y-1 max-h-40 overflow-y-auto">
-            {users.map((u) => (
-              <div key={u.id} className="flex items-center gap-2 text-sm text-gray-600">
-                <Badge variant="outline" className="text-[10px]">{u.role}</Badge>
-                <span>{u.name}</span>
-                <span className="text-xs text-gray-400">{u.phone}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
 
       {loading ? <SkeletonDashboard cols={4} /> : (
         <>
@@ -123,6 +57,15 @@ export default function AdminDashboard() {
             <StatsCard title="Languages" value={languages.length} icon="🌐" subtitle={`${categories.length} symptom categories`} />
           </div>
 
+          {cases.length === 0 && (
+            <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg text-center animate-fade-in">
+              <p className="text-sm text-amber-700 mb-2">No data yet. Seed demo data to see the dashboards in action.</p>
+              <Button size="sm" onClick={seedDemo} disabled={seeding}>
+                {seeding ? "Seeding..." : "🌱 Seed Demo Data"}
+              </Button>
+            </div>
+          )}
+
           {cases.length > 0 && (
             <div className="grid md:grid-cols-2 gap-4 md:gap-6 mb-6">
               <div className="border rounded-lg p-4 bg-white">
@@ -132,24 +75,37 @@ export default function AdminDashboard() {
                     <div key={lang} className="flex items-center gap-2">
                       <span className="text-xs md:text-sm w-8 font-mono">{lang.toUpperCase()}</span>
                       <div className="flex-1 h-4 bg-gray-100 rounded-full overflow-hidden">
-                        <div className="h-full bg-emerald-500 rounded-full transition-all duration-700" style={{ width: `${(count / cases.length) * 100}%` }} />
+                        <div
+                          className="h-full bg-emerald-500 rounded-full transition-all duration-700"
+                          style={{
+                            width: `${(count / cases.length) * 100}%`,
+                          }}
+                        />
                       </div>
                       <span className="text-xs text-gray-500 w-8 text-right">{count}</span>
                     </div>
                   ))}
                 </div>
               </div>
+
               <div className="border rounded-lg p-4 bg-white">
                 <h3 className="font-semibold mb-3">📊 Urgency Distribution</h3>
                 <div className="space-y-2">
                   {["emergency", "high", "medium", "low"].map((level) => {
                     const count = cases.filter((c) => c.urgency === level).length;
-                    const pct = cases.length > 0 ? (count / cases.length) * 100 : 0;
                     return (
                       <div key={level} className="flex items-center gap-2">
                         <span className="text-xs md:text-sm w-20 capitalize">{level}</span>
                         <div className="flex-1 h-4 bg-gray-100 rounded-full overflow-hidden">
-                          <div className={`h-full rounded-full transition-all duration-700 ${level === "emergency" ? "bg-red-500" : level === "high" ? "bg-orange-500" : level === "medium" ? "bg-yellow-500" : "bg-green-500"}`} style={{ width: `${pct}%` }} />
+                          <div
+                            className={`h-full rounded-full transition-all duration-700 ${
+                              level === "emergency" ? "bg-red-500"
+                              : level === "high" ? "bg-orange-500"
+                              : level === "medium" ? "bg-yellow-500"
+                              : "bg-green-500"
+                            }`}
+                            style={{ width: `${(count / cases.length) * 100}%` }}
+                          />
                         </div>
                         <span className="text-xs text-gray-500 w-8 text-right">{count}</span>
                       </div>
@@ -165,10 +121,11 @@ export default function AdminDashboard() {
             {cases.length === 0 ? (
               <div className="text-center py-12 text-gray-400">
                 <p className="text-3xl mb-2">📊</p>
-                <p>No cases yet. Run a triage from the demo-call page.</p>
+                <p>No cases yet.</p>
+                <p className="text-xs mt-1">Run a triage or seed demo data to populate.</p>
               </div>
             ) : (
-              <CaseTable cases={cases.slice(0, 20)} onCaseClick={(c) => router.push(`/cases/${c.id}`)} />
+              <CaseTable cases={cases.slice(0, 20)} />
             )}
           </div>
         </>

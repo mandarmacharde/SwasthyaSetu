@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { StatsCard } from "@/components/stats-card";
+import { CaseCard } from "@/components/case-card";
+import { CaseTable } from "@/components/case-table";
 import { SkeletonDashboard } from "@/components/skeleton-dashboard";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -64,7 +66,7 @@ export default function AshaDashboard() {
           </div>
 
           {urgent.length > 0 && (
-            <div className="mb-6 p-3 bg-red-50 border-2 border-red-300 rounded-lg animate-pulse">
+            <div className="mb-6 p-3 bg-red-50 border border-red-200 rounded-lg animate-fade-in">
               <h3 className="text-sm font-semibold text-red-700 mb-2">
                 🚨 {urgent.length} emergency case{urgent.length > 1 ? "s" : ""} — action required
               </h3>
@@ -136,11 +138,6 @@ export default function AshaDashboard() {
                     </p>
                   </div>
                   <div className="flex gap-1 shrink-0 ml-3">
-                    {c.patient_id && (
-                      <Button size="sm" variant="ghost" className="text-xs text-gray-400" onClick={(e) => { e.stopPropagation(); router.push(`/patients/${c.patient_id}`); }}>
-                        History
-                      </Button>
-                    )}
                     {!c.assigned_to && (
                       <Button size="sm" variant="outline" className="text-xs" onClick={() => assignToMe(c)}>Assign</Button>
                     )}
