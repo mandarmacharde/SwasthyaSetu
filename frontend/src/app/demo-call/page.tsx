@@ -30,7 +30,7 @@ function CallTimer() {
 
 export default function DemoCallPage() {
   const [pageStep, setPageStep] = useState<PageStep>("call");
-  const [language, setLanguage] = useState("mr");
+  const [language, setLanguage] = useState("en");
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [triageResult, setTriageResult] = useState<any>(null);
   const [conversation, setConversation] = useState<{ role: string; text: string }[]>([]);
