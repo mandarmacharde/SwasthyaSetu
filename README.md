@@ -47,7 +47,7 @@
 | 🌐 **Frontend** | [swasthya-setu-mauve.vercel.app](https://swasthya-setu-mauve.vercel.app) |
 | 📡 **Backend API** | [swasthyasetu-pjgf.onrender.com](https://swasthyasetu-pjgf.onrender.com) |
 | 📘 **API Docs (Swagger)** | [swasthyasetu-pjgf.onrender.com/docs](https://swasthyasetu-pjgf.onrender.com/docs) |
-| 🎬 **Demo Video** | [Google Drive](https://drive.google.com/drive/folders/1Lq03kkz0lWkVl8wJrKrO2U00u2bwtj6l) |
+| 🎬 **Demo Video** | [Google Drive](https://drive.google.com/file/d/1zc3VkmTitRo9I276Zwox5N6houX7WULT/view?usp=drive_link) |
 | 📝 **Project Write-up** | [Google Drive](https://drive.google.com/file/d/14CGcZvh5gJ1b19Tuwv9vgajKEjqXtiHM/view?usp=sharing) |
 
 ---
