@@ -12,7 +12,7 @@
       <img src="https://img.shields.io/badge/🌐%20Live%20App-22c55e?style=for-the-badge" alt="Live App"/>
     </a>
     &nbsp;
-    <a href="https://swasthyasetu-pjgf.onrender.com/docs" target="_blank">
+    <a href="https://swasthyasetu-38f6.onrender.com/docs" target="_blank">
       <img src="https://img.shields.io/badge/📡%20API%20Docs-64748b?style=for-the-badge" alt="API Docs"/>
     </a>
     &nbsp;
@@ -45,8 +45,8 @@
 | | |
 |---|---|
 | 🌐 **Frontend** | [swasthya-setu-mauve.vercel.app](https://swasthya-setu-mauve.vercel.app) |
-| 📡 **Backend API** | [swasthyasetu-pjgf.onrender.com](https://swasthyasetu-pjgf.onrender.com) |
-| 📘 **API Docs (Swagger)** | [swasthyasetu-pjgf.onrender.com/docs](https://swasthyasetu-pjgf.onrender.com/docs) |
+| 📡 **Backend API** | [swasthyasetu-38f6.onrender.com](https://swasthyasetu-38f6.onrender.com) |
+| 📘 **API Docs (Swagger)** | [swasthyasetu-38f6.onrender.com/docs](https://swasthyasetu-38f6.onrender.com/docs) |
 | 🎬 **Demo Video** | [Google Drive](https://drive.google.com/file/d/1zc3VkmTitRo9I276Zwox5N6houX7WULT/view?usp=drive_link) |
 | 📝 **Project Write-up** | [Google Drive](https://drive.google.com/file/d/14CGcZvh5gJ1b19Tuwv9vgajKEjqXtiHM/view?usp=sharing) |
 
